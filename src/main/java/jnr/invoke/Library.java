@@ -1,0 +1,50 @@
+/*
+ * Copyright (C) 2013 Wayne Meissner
+ *
+ * This file is part of the JNR project.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package jnr.invoke;
+
+public final class Library {
+    public static final int LAZY = com.kenai.jffi.Library.LAZY;
+    public static final int NOW = com.kenai.jffi.Library.NOW;
+    public static final int LOCAL = com.kenai.jffi.Library.LOCAL;
+    public static final int GLOBAL = com.kenai.jffi.Library.GLOBAL;
+
+    private final com.kenai.jffi.Library jffiLibrary;
+
+    public static Library open(String name, int flags) {
+        com.kenai.jffi.Library jffiLibrary = com.kenai.jffi.Library.getCachedInstance(name, flags);
+        if (jffiLibrary != null) {
+            return new Library(jffiLibrary);
+        }
+
+        throw new UnsatisfiedLinkError(com.kenai.jffi.Library.getLastError());
+    }
+
+    private Library(com.kenai.jffi.Library jffiLibrary) {
+        this.jffiLibrary = jffiLibrary;
+    }
+
+    public final Symbol findSymbol(String name) {
+        long address = jffiLibrary.getSymbolAddress(name);
+        if (address != 0L) {
+            return new Symbol(this, address);
+        }
+
+        return null;
+    }
+}
