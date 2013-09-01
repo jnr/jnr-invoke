@@ -12,12 +12,12 @@ public class Getpid {
 
     public static void main(String[] args) throws Throwable {
 
-        CallContext callContext = CallContext.getCallContext(ResultType.primitive(NativeType.ULONG, long.class),
+        CallContext callContext = CallContext.getCallContext(ResultType.primitive(NativeType.ULONG, Long.class),
                 new ParameterType[0], CallingConvention.DEFAULT, false);
 
         Library libc = Library.open(Platform.getPlatform().mapLibraryName("c"), Library.LAZY | Library.LOCAL);
 
         MethodHandle mh = Native.getMethodHandle(libc.findSymbol("getpid"), callContext);
-        System.out.println("pid = " + (long) mh.invokeExact());
+        System.out.println("pid = " + (Long) mh.invokeExact());
     }
 }
