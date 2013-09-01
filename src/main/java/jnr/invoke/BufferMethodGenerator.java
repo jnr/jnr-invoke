@@ -29,7 +29,6 @@ import java.util.Map;
 
 import static jnr.invoke.AbstractFastNumericMethodGenerator.emitParameterStrategyLookup;
 import static jnr.invoke.AbstractFastNumericMethodGenerator.hasPointerParameterStrategy;
-import static jnr.invoke.AsmUtil.unboxedReturnType;
 import static jnr.invoke.CodegenUtils.ci;
 import static jnr.invoke.CodegenUtils.p;
 import static jnr.invoke.NumberUtil.convertPrimitive;
@@ -199,8 +198,8 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
 
         mv.invokevirtual(Invoker.class, iop.methodName, iop.primitiveClass, CallContext.class, long.class, HeapInvocationBuffer.class);
 
-        // box and/or narrow/widen the return value if needed
-        convertPrimitive(mv, iop.primitiveClass, unboxedReturnType(resultType.effectiveJavaType()), resultType.getNativeType());
+        // narrow/widen the return value if needed
+        convertPrimitive(mv, iop.primitiveClass, resultType.effectiveJavaType(), resultType.getNativeType());
         emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, sessionRequired ? new Runnable() {
             public void run() {
                 mv.aload(session);

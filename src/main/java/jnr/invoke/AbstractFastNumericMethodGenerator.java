@@ -95,9 +95,8 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
         }
 
-        // box and/or narrow/widen the return value if needed
-        final Class unboxedResultType = unboxedReturnType(javaReturnType);
-        convertPrimitive(mv, nativeReturnType, unboxedResultType, resultType.getNativeType());
+        // narrow/widen the return value if needed
+        convertPrimitive(mv, nativeReturnType, javaReturnType, resultType.getNativeType());
         emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, null);
 
         /* --  method returns above - below is an alternative path -- */

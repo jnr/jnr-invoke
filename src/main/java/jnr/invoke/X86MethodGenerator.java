@@ -26,7 +26,6 @@ import org.objectweb.asm.Label;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static jnr.invoke.AbstractFastNumericMethodGenerator.*;
-import static jnr.invoke.AsmUtil.unboxedReturnType;
 import static jnr.invoke.BaseMethodGenerator.emitEpilogue;
 import static jnr.invoke.BaseMethodGenerator.loadAndConvertParameter;
 import static jnr.invoke.CodegenUtils.*;
@@ -174,9 +173,8 @@ class X86MethodGenerator implements MethodGenerator {
         // invoke the compiled stub
         mv.invokestatic(builder.getClassNamePath(), nativeMethodName, sig(nativeReturnType, nativeParameterTypes));
 
-        // If boxing is neccessary, perform conversions
-        final Class unboxedResultType = unboxedReturnType(resultType.effectiveJavaType());
-        convertPrimitive(mv, nativeReturnType, unboxedResultType);
+        // widen/narrow result as required
+        convertPrimitive(mv, nativeReturnType, resultType.effectiveJavaType());
 
         if (pointerCount > 0) {
             mv.label(convertResult);
@@ -256,7 +254,7 @@ class X86MethodGenerator implements MethodGenerator {
                 mv.pop2();
 
             }
-            convertPrimitive(mv, long.class, unboxedResultType, resultType.getNativeType());
+            convertPrimitive(mv, long.class, resultType.effectiveJavaType(), resultType.getNativeType());
 
             // Jump to the main conversion/boxing code above
             mv.go_to(convertResult);

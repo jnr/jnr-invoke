@@ -29,12 +29,9 @@ abstract class ToNativeOp {
         Map<Class, ToNativeOp> m = new IdentityHashMap<Class, ToNativeOp>();
         for (Class c : new Class[] { byte.class, char.class, short.class, int.class, long.class, boolean.class }) {
             m.put(c, new Integral(c));
-            m.put(boxedType(c), new Integral(boxedType(c)));
         }
         m.put(float.class, new Float32(float.class));
-        m.put(Float.class, new Float32(Float.class));
         m.put(double.class, new Float64(float.class));
-        m.put(Double.class, new Float64(Float.class));
 
         operations = Collections.unmodifiableMap(m);
     }
@@ -65,11 +62,7 @@ abstract class ToNativeOp {
 
         @Override
         public void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
-            if (javaType.isPrimitive()) {
-                NumberUtil.convertPrimitive(mv, javaType, primitiveClass, nativeType);
-            } else {
-                unboxNumber(mv, javaType, primitiveClass, nativeType);
-            }
+            NumberUtil.convertPrimitive(mv, javaType, primitiveClass, nativeType);
         }
     }
 
@@ -80,9 +73,6 @@ abstract class ToNativeOp {
 
         @Override
         void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
-            if (!javaType.isPrimitive()) {
-                unboxNumber(mv, javaType, float.class);
-            }
             if (primitiveClass != float.class) {
                 mv.invokestatic(Float.class, "floatToRawIntBits", int.class, float.class);
                 widen(mv, int.class, primitiveClass);
@@ -97,9 +87,6 @@ abstract class ToNativeOp {
 
         @Override
         void emitPrimitive(SkinnyMethodAdapter mv, Class primitiveClass, NativeType nativeType) {
-            if (!javaType.isPrimitive()) {
-                unboxNumber(mv, javaType, double.class);
-            }
             if (primitiveClass != double.class) {
                 mv.invokestatic(Double.class, "doubleToRawLongBits", long.class, double.class);
                 narrow(mv, long.class, primitiveClass);

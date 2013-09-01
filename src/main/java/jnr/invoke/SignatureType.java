@@ -21,9 +21,9 @@ package jnr.invoke;
 public abstract class SignatureType {
     private final NativeType nativeType;
     private final Class javaType;
-    private final com.kenai.jffi.Type jffiType;
-    private final int size;
-    private final int alignment;
+    protected final com.kenai.jffi.Type jffiType;
+    protected final int size;
+    protected final int alignment;
 
     SignatureType(NativeType nativeType, Class javaType, com.kenai.jffi.Type jffiType) {
         this.nativeType = nativeType;
@@ -52,6 +52,12 @@ public abstract class SignatureType {
     public Class getDeclaredType() {
         return javaType;
     }
+
+    com.kenai.jffi.Type jffiType() {
+        return jffiType;
+    }
+
+
 
 
 

@@ -40,4 +40,11 @@ public class ResultType extends SignatureType {
     FromNativeContext getFromNativeContext() {
         return null;
     }
+
+
+    ResultType asPrimitiveType() {
+        return !getDeclaredType().isPrimitive() && Number.class.isAssignableFrom(getDeclaredType())
+                ? new ResultType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), jffiType())
+                : this;
+    }
 }

@@ -63,9 +63,15 @@ public final class Native {
         cv.visit(V1_6, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(AbstractAsmLibraryInterface.class),
                 new String[0]);
         Function jffiFunction = new Function(nativeAddress.address(), context.getNativeCallContext());
+        ResultType resultType = context.getResultType().asPrimitiveType();
+        ParameterType[] parameterTypes = new ParameterType[context.getParameterCount()];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            parameterTypes[i] = context.getParameterType(i).asPrimitiveType();
+        }
+
         for (MethodGenerator g : generators) {
-            if (g.isSupported(context.getResultType(), context.parameterTypes, context.getCallingConvention())) {
-                g.generate(builder, "invokeNative", jffiFunction, context.getResultType(), context.parameterTypes,
+            if (g.isSupported(resultType, parameterTypes, context.getCallingConvention())) {
+                g.generate(builder, "invokeNative", jffiFunction, resultType, parameterTypes,
                         !context.saveErrno);
                 break;
             }
@@ -107,12 +113,26 @@ public final class Native {
 
             Class[] ptypes = new Class[context.getParameterCount()];
             for (int i = 0; i < ptypes.length; i++) {
-                ptypes[i] = context.getParameterType(i).getDeclaredType();
+                ptypes[i] = parameterTypes[i].getDeclaredType();
             }
 
-            MethodType methodType = MethodType.methodType(context.getResultType().getDeclaredType(), ptypes);
+            MethodType methodType = MethodType.methodType(resultType.getDeclaredType(), ptypes);
 
-            return MethodHandles.lookup().findVirtual(implClass, "invokeNative", methodType).bindTo(instance);
+            MethodHandle mh = MethodHandles.lookup().findVirtual(implClass, "invokeNative", methodType).bindTo(instance);
+
+            // Convert from the primitive result value to a boxed type if needed.
+            if (!resultType.equals(context.getResultType())) {
+                mh = MethodHandles.filterReturnValue(mh, NumberUtil.getBoxingHandle(resultType.getDeclaredType()));
+            }
+
+            // If needed, convert any boxed parameters to their corresponding primitive values before calling
+            for (int i = 0; i < parameterTypes.length; i++) {
+                if (!parameterTypes[i].equals(context.getParameterType(i))) {
+                    mh = MethodHandles.filterArguments(mh, i, NumberUtil.getUnboxingHandle(context.getParameterType(i).getDeclaredType()));
+                }
+            }
+
+            return mh;
 
         } catch (Throwable ex) {
             throw new RuntimeException(ex);

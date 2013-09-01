@@ -26,7 +26,7 @@ public final class ParameterType extends SignatureType {
         this.dataDirection = dataDirection;
     }
 
-    static ParameterType primitive(NativeType nativeType, Class javaType) {
+    public static ParameterType primitive(NativeType nativeType, Class javaType) {
         return new ParameterType(nativeType, javaType, DataDirection.INOUT, jffiType(nativeType));
     }
 
@@ -53,5 +53,11 @@ public final class ParameterType extends SignatureType {
 
     Class effectiveJavaType() {
         return javaType();
+    }
+
+    ParameterType asPrimitiveType() {
+        return !getDeclaredType().isPrimitive() && Number.class.isAssignableFrom(getDeclaredType())
+                ? new ParameterType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), getDataDirection(), jffiType())
+                : this;
     }
 }

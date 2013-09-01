@@ -19,9 +19,56 @@
 package jnr.invoke;
 
 
-public final class NumberUtil {
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+
+final class NumberUtil {
     private NumberUtil() {}
-    
+    private static final Map<Class, MethodHandle> unboxingHandles;
+    private static final Map<Class, MethodHandle> boxingHandles;
+    static {
+        Class[] primitiveClasses = new Class[] {
+            byte.class, char.class, short.class, int.class, long.class, float.class, double.class, boolean.class
+        };
+
+        Class[] boxedClasses = new Class[] {
+            Byte.class, Character.class, Short.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class
+        };
+
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        Map<Class, MethodHandle> p2b = new IdentityHashMap<>();
+        Map<Class, MethodHandle> b2p = new IdentityHashMap<>();
+
+        for (int i = 0; i < primitiveClasses.length; i++) {
+            try {
+                p2b.put(primitiveClasses[i], lookup.findStatic(boxedClasses[i], "valueOf",
+                    MethodType.methodType(boxedClasses[i], primitiveClasses[i])));
+                b2p.put(boxedClasses[i], lookup.findVirtual(boxedClasses[i], primitiveClasses[i].getName() + "Value",
+                    MethodType.methodType(primitiveClasses[i])));
+            } catch (NoSuchMethodException | IllegalAccessException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+        unboxingHandles = Collections.unmodifiableMap(b2p);
+        boxingHandles = Collections.unmodifiableMap(p2b);
+    }
+
+    static MethodHandle getUnboxingHandle(Class boxedClass) {
+        MethodHandle mh = unboxingHandles.get(boxedClass);
+        if (mh == null) throw new IllegalArgumentException("unsupported boxed class " + boxedClass.getName());
+        return mh;
+    }
+
+    static MethodHandle getBoxingHandle(Class primitiveClass) {
+        MethodHandle mh = boxingHandles.get(primitiveClass);
+        if (mh == null) throw new IllegalArgumentException("unsupported primitive class " + primitiveClass.getName());
+        return mh;
+    }
+
     static Class getBoxedClass(Class c) {
         if (!c.isPrimitive()) {
             return c;
@@ -56,41 +103,6 @@ public final class NumberUtil {
 
         } else {
             throw new IllegalArgumentException("unknown primitive class");
-        }
-    }
-
-    static Class getPrimitiveClass(Class c) {
-        if (Void.class == c) {
-            return void.class;
-
-        } else if (Boolean.class == c) {
-            return boolean.class;
-
-        } else if (Byte.class == c) {
-            return byte.class;
-
-        } else if (Character.class == c) {
-            return char.class;
-
-        } else if (Short.class == c) {
-            return short.class;
-
-        } else if (Integer.class == c) {
-            return int.class;
-
-        } else if (Long.class == c) {
-            return long.class;
-
-        } else if (Float.class == c) {
-            return float.class;
-
-        } else if (Double.class == c) {
-            return double.class;
-        
-        } else if (c.isPrimitive()) {
-            return c;
-        } else {
-            throw new IllegalArgumentException("unsupported number class");
         }
     }
 

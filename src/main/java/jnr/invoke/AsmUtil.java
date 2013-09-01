@@ -80,10 +80,6 @@ final class AsmUtil {
         }
     }
 
-    public static Class unboxedReturnType(Class type) {
-        return unboxedType(type);
-    }
-
     public static Class unboxedType(Class boxedType) {
         if (boxedType == Byte.class) {
             return byte.class;
@@ -200,13 +196,9 @@ final class AsmUtil {
         return size;
     }
 
-    static void unboxBoolean(final SkinnyMethodAdapter mv, Class boxedType, final Class nativeType) {
+    private static void unboxBoolean(final SkinnyMethodAdapter mv, Class boxedType, final Class nativeType) {
         mv.invokevirtual(p(boxedType), "booleanValue", "()Z");
         widen(mv, boolean.class, nativeType);
-    }
-
-    static void unboxBoolean(final SkinnyMethodAdapter mv, final Class nativeType) {
-        unboxBoolean(mv, Boolean.class, nativeType);
     }
 
     static void unboxNumber(final SkinnyMethodAdapter mv, final Class boxedType, final Class unboxedType,
@@ -258,7 +250,7 @@ final class AsmUtil {
 
 
         } else if (Boolean.class.isAssignableFrom(boxedType)) {
-            unboxBoolean(mv, unboxedType);
+            unboxBoolean(mv, Boolean.class, unboxedType);
 
         } else {
             throw new IllegalArgumentException("unsupported boxed type: " + boxedType);
@@ -293,7 +285,7 @@ final class AsmUtil {
             }
 
         } else if (Boolean.class.isAssignableFrom(boxedType)) {
-            unboxBoolean(mv, nativeType);
+            unboxBoolean(mv, Boolean.class, nativeType);
 
         } else {
             throw new IllegalArgumentException("unsupported boxed type: " + boxedType);
