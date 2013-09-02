@@ -25,6 +25,7 @@ import static jnr.invoke.AsmUtil.*;
 import static jnr.invoke.CodegenUtils.*;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
 
 /**
  *
@@ -38,7 +39,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
             javaParameterTypes[i] = parameterTypes[i].getDeclaredType();
         }
 
-        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL,
+        SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(), ACC_PUBLIC | ACC_FINAL | ACC_STATIC,
                 functionName,
                 sig(resultType.getDeclaredType(), javaParameterTypes), null, null);
         mv.start();
@@ -47,11 +48,9 @@ abstract class BaseMethodGenerator implements MethodGenerator {
         mv.getstatic(p(AbstractAsmLibraryInterface.class), "ffi", ci(com.kenai.jffi.Invoker.class));
 
         // retrieve the call context and function address
-        mv.aload(0);
-        mv.getfield(builder.getClassNamePath(), builder.getCallContextFieldName(function.getCallContext()), ci(CallContext.class));
+        mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(function.getCallContext()), ci(CallContext.class));
 
-        mv.aload(0);
-        mv.getfield(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
+        mv.getstatic(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
 
         LocalVariableAllocator localVariableAllocator = new LocalVariableAllocator(parameterTypes);
 
@@ -120,9 +119,8 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                                LocalVariable[] parameters, LocalVariable[] converted) {
         for (int i = 0; i < converted.length; ++i) {
             if (converted[i] != null && parameterTypes[i].getToNativeConverter() instanceof ToNativeConverter.PostInvocation) {
-                mv.aload(0);
                 AsmBuilder.ObjectField toNativeConverterField = builder.getToNativeConverterField(parameterTypes[i].getToNativeConverter());
-                mv.getfield(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
+                mv.getstatic(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
                 if (!ToNativeConverter.PostInvocation.class.isAssignableFrom(toNativeConverterField.klass)) {
                     mv.checkcast(ToNativeConverter.PostInvocation.class);
                 }

@@ -28,13 +28,12 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static jnr.invoke.CodegenUtils.p;
 import static jnr.invoke.CodegenUtils.sig;
-import static org.objectweb.asm.Opcodes.ACC_FINAL;
-import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
-import static org.objectweb.asm.Opcodes.V1_6;
+import static org.objectweb.asm.Opcodes.*;
 
 public final class Native {
     public final static boolean DEBUG = Boolean.getBoolean("jnr.invoke.compile.dump");
@@ -60,7 +59,7 @@ public final class Native {
 
         AsmBuilder builder = new AsmBuilder(p(Native.class) + "$jnr$ffi$" + nextClassID.getAndIncrement(), cv, classLoader);
 
-        cv.visit(V1_6, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(AbstractAsmLibraryInterface.class),
+        cv.visit(V1_7, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(AbstractAsmLibraryInterface.class),
                 new String[0]);
         Function jffiFunction = new Function(nativeAddress.address(), context.getNativeCallContext());
         ResultType resultType = context.getResultType().asPrimitiveType();
@@ -77,22 +76,33 @@ public final class Native {
             }
         }
 
+        // Stash a strong ref to reference to the library, so it doesn't get garbage collected.
+        builder.getObjectField(nativeAddress.getLibrary(), nativeAddress.getLibrary().getClass());
+
         // Create the constructor to set the instance fields
-        SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>",
-                sig(void.class, Library.class, Object[].class),
-                null, null);
-        init.start();
-        // Invoke the super class constructor as super(Library)
-        init.aload(0);
-        init.aload(1);
-        init.invokespecial(p(AbstractAsmLibraryInterface.class), "<init>", sig(void.class, Library.class));
+        {
+            SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>", sig(void.class), null, null);
+            init.start();
+            init.aload(0);
+            init.invokespecial(p(AbstractAsmLibraryInterface.class), "<init>", sig(void.class));
+            init.voidreturn();
+            init.visitMaxs(10, 10);
+            init.visitEnd();
+        }
 
-        builder.emitFieldInitialization(init, 2);
-
-        init.voidreturn();
-        init.visitMaxs(10, 10);
-        init.visitEnd();
+        // Create the static class initializer to set the instance fields
+        Map<String, Object> fields = builder.getObjectFieldMap();
+        if (!fields.isEmpty()) {
+            SkinnyMethodAdapter clinit = new SkinnyMethodAdapter(cv, ACC_PUBLIC | ACC_STATIC, "<clinit>", sig(void.class), null, null);
+            clinit.start();
+            AbstractAsmLibraryInterface.setStaticClassData(builder.getClassNamePath(), fields);
+            builder.emitStaticFieldInitialization(clinit, builder.getClassNamePath());
+            clinit.voidreturn();
+            clinit.visitMaxs(10, 10);
+            clinit.visitEnd();
+        }
         cv.visitEnd();
+
 
         try {
             byte[] bytes = cw.toByteArray();
@@ -102,8 +112,7 @@ public final class Native {
             }
 
             Class implClass = classLoader.defineClass(builder.getClassNamePath().replace("/", "."), bytes);
-            Constructor cons = implClass.getDeclaredConstructor(Library.class, Object[].class);
-            Object instance = cons.newInstance(nativeAddress.getLibrary(), builder.getObjectFieldValues());
+            implClass.newInstance();
 
             // Attach any native method stubs - we have to delay this until the
             // implementation class is loaded for it to work.
@@ -118,7 +127,7 @@ public final class Native {
 
             MethodType methodType = MethodType.methodType(resultType.getDeclaredType(), ptypes);
 
-            MethodHandle mh = MethodHandles.lookup().findVirtual(implClass, "invokeNative", methodType).bindTo(instance);
+            MethodHandle mh = MethodHandles.lookup().findStatic(implClass, "invokeNative", methodType);
 
             // Convert from the primitive result value to a boxed type if needed.
             if (!resultType.equals(context.getResultType())) {

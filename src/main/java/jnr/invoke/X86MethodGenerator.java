@@ -110,7 +110,7 @@ class X86MethodGenerator implements MethodGenerator {
 
         String stubName = functionName + (wrapperNeeded ? "$jni$" + nextMethodID.incrementAndGet() : "");
 
-        builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL | ACC_NATIVE | (wrapperNeeded ? ACC_STATIC : 0),
+        builder.getClassVisitor().visitMethod(ACC_PUBLIC | ACC_FINAL | ACC_NATIVE | ACC_STATIC,
                 stubName, sig(nativeReturnType, nativeParameterTypes), null, null);
 
         compiler.compile(function, stubName, resultType, parameterTypes, nativeReturnType, nativeParameterTypes,
@@ -132,7 +132,7 @@ class X86MethodGenerator implements MethodGenerator {
         }
 
         final SkinnyMethodAdapter mv = new SkinnyMethodAdapter(builder.getClassVisitor(),
-                ACC_PUBLIC | ACC_FINAL,
+                ACC_PUBLIC | ACC_FINAL | ACC_STATIC,
                 functionName, sig(resultType.getDeclaredType(), javaParameterTypes), null, null);
         mv.setMethodVisitor(AsmUtil.newTraceMethodVisitor(mv.getMethodVisitor()));
         mv.start();
@@ -140,7 +140,7 @@ class X86MethodGenerator implements MethodGenerator {
 
         LocalVariableAllocator localVariableAllocator = new LocalVariableAllocator(parameterTypes);
         final LocalVariable objCount = localVariableAllocator.allocate(int.class);
-        final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes);
+        final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes, true);
         final LocalVariable[] converted = new LocalVariable[parameterTypes.length];
         int pointerCount = 0;
 
@@ -208,11 +208,8 @@ class X86MethodGenerator implements MethodGenerator {
             mv.getstatic(p(AbstractAsmLibraryInterface.class), "ffi", ci(Invoker.class));
 
             // retrieve the call context and function address
-            mv.aload(0);
-            mv.getfield(builder.getClassNamePath(), builder.getCallContextFieldName(function), ci(CallContext.class));
-
-            mv.aload(0);
-            mv.getfield(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
+            mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(function.getCallContext()), ci(CallContext.class));
+            mv.getstatic(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
 
             // Now reload the args back onto the parameter stack
             mv.lload(tmp);
@@ -232,8 +229,7 @@ class X86MethodGenerator implements MethodGenerator {
 
                     ObjectParameterInfo info = ObjectParameterInfo.create(i, parameterTypes[i].getDataDirection().getArrayFlags());
 
-                    mv.aload(0);
-                    mv.getfield(builder.getClassNamePath(), builder.getObjectParameterInfoName(info),
+                    mv.getstatic(builder.getClassNamePath(), builder.getObjectParameterInfoName(info),
                             ci(ObjectParameterInfo.class));
                 }
             }

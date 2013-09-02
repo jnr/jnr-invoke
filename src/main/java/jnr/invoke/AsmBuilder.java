@@ -18,7 +18,6 @@
 
 package jnr.invoke;
 
-import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Function;
 import com.kenai.jffi.ObjectParameterInfo;
 import org.objectweb.asm.ClassVisitor;
@@ -31,6 +30,7 @@ import static jnr.invoke.AsmUtil.unboxNumber;
 import static jnr.invoke.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
 
 /**
  *
@@ -40,22 +40,9 @@ class AsmBuilder {
     private final ClassVisitor classVisitor;
     private final AsmClassLoader classLoader;
 
-    private final ObjectNameGenerator functionId = new ObjectNameGenerator("functionAddress");
-    private final ObjectNameGenerator contextId = new ObjectNameGenerator("callContext");
-    private final ObjectNameGenerator toNativeConverterId = new ObjectNameGenerator("toNativeConverter");
-    private final ObjectNameGenerator toNativeContextId = new ObjectNameGenerator("toNativeContext");
-    private final ObjectNameGenerator fromNativeConverterId = new ObjectNameGenerator("fromNativeConverter");
-    private final ObjectNameGenerator fromNativeContextId = new ObjectNameGenerator("fromNativeContext");
-    private final ObjectNameGenerator objectParameterInfoId = new ObjectNameGenerator("objectParameterInfo");
-    private final ObjectNameGenerator variableAccessorId = new ObjectNameGenerator("variableAccessor");
-    private final ObjectNameGenerator genericObjectId = new ObjectNameGenerator("objectField");
+    private final ObjectNameGenerator functionId = new SimpleObjectNameGenerator("functionAddress");
+    private final ObjectNameGenerator genericObjectId = new InferringObjectNameGenerator();
 
-    private final Map<ToNativeConverter, ObjectField> toNativeConverters = new IdentityHashMap<ToNativeConverter, ObjectField>();
-    private final Map<ToNativeContext, ObjectField> toNativeContexts = new IdentityHashMap<ToNativeContext, ObjectField>();
-    private final Map<FromNativeConverter, ObjectField> fromNativeConverters = new IdentityHashMap<FromNativeConverter, ObjectField>();
-    private final Map<FromNativeContext, ObjectField> fromNativeContexts = new IdentityHashMap<FromNativeContext, ObjectField>();
-    private final Map<ObjectParameterInfo, ObjectField> objectParameterInfo = new HashMap<ObjectParameterInfo, ObjectField>();
-    private final Map<CallContext, ObjectField> callContextMap = new HashMap<CallContext, ObjectField>();
     private final Map<Long, ObjectField> functionAddresses = new HashMap<Long, ObjectField>();
     private final Map<Object, ObjectField> genericObjects = new IdentityHashMap<Object, ObjectField>();
     private final List<ObjectField> objectFields = new ArrayList<ObjectField>();
@@ -78,21 +65,34 @@ class AsmBuilder {
         return classLoader;
     }
 
-    private static final class ObjectNameGenerator {
+    private static interface ObjectNameGenerator {
+        String generateName(Class cls);
+    }
+
+    private static final class SimpleObjectNameGenerator implements ObjectNameGenerator {
         private final String baseName;
         private int value;
-        ObjectNameGenerator(String baseName) {
+        SimpleObjectNameGenerator(String baseName) {
             this.baseName = baseName;
             this.value = 0;
         }
 
-        String generateName() {
+        public String generateName(Class klass) {
             return baseName + "_" + ++value;
         }
     }
 
+    private static final class InferringObjectNameGenerator implements ObjectNameGenerator {
+        private final Map<Class, Long> classCount = new IdentityHashMap<>();
+        public String generateName(Class klass) {
+            Long count = classCount.get(klass);
+            classCount.put(klass, count = count != null ? count + 1 : 1);
+            return klass.getName().replace('.', '_') + '_' + count;
+        }
+    }
+
     <T> ObjectField addField(Map<T, ObjectField> map, T value, Class klass, ObjectNameGenerator objectNameGenerator) {
-        ObjectField field = new ObjectField(objectNameGenerator.generateName(), value, klass);
+        ObjectField field = new ObjectField(objectNameGenerator.generateName(klass), value, klass);
         objectFields.add(field);
         map.put(value, field);
         return field;
@@ -101,14 +101,6 @@ class AsmBuilder {
     <T> ObjectField getField(Map<T, ObjectField> map, T value, Class klass, ObjectNameGenerator objectNameGenerator) {
         ObjectField field = map.get(value);
         return field != null ? field : addField(map, value, klass, objectNameGenerator);
-    }
-
-    String getCallContextFieldName(Function function) {
-        return getField(callContextMap, function.getCallContext(), CallContext.class, contextId).name;
-    }
-
-    String getCallContextFieldName(CallContext callContext) {
-        return getField(callContextMap, callContext, CallContext.class, contextId).name;
     }
 
     String getFunctionAddressFieldName(Function function) {
@@ -128,32 +120,39 @@ class AsmBuilder {
     }
 
     ObjectField getToNativeConverterField(ToNativeConverter converter) {
-        return getField(toNativeConverters, converter, nearestClass(converter, ToNativeConverter.class), toNativeConverterId);
+        return getObjectField(converter, nearestClass(converter, ToNativeConverter.class));
     }
 
     ObjectField getFromNativeConverterField(FromNativeConverter converter) {
-        return getField(fromNativeConverters, converter, nearestClass(converter, FromNativeConverter.class), fromNativeConverterId);
+        return getObjectField(converter, nearestClass(converter, FromNativeConverter.class));
     }
 
     ObjectField getToNativeContextField(ToNativeContext context) {
-        return getField(toNativeContexts, context, nearestClass(context, ToNativeContext.class), toNativeContextId);
+        return getObjectField(context, nearestClass(context, ToNativeContext.class));
     }
 
     ObjectField getFromNativeContextField(FromNativeContext context) {
-        return getField(fromNativeContexts, context, nearestClass(context, FromNativeContext.class), fromNativeContextId);
+        return getObjectField(context, nearestClass(context, FromNativeContext.class));
     }
 
-
     String getObjectParameterInfoName(ObjectParameterInfo info) {
-        return getField(objectParameterInfo, info, ObjectParameterInfo.class, objectParameterInfoId).name;
+        return getObjectField(info, ObjectParameterInfo.class).name;
     }
 
     String getObjectFieldName(Object obj, Class klass) {
-        return getField(genericObjects, obj, klass, genericObjectId).name;
+        return getObjectField(obj, klass).name;
+    }
+
+    String getObjectFieldName(Object obj) {
+        return getObjectField(obj).name;
     }
 
     ObjectField getObjectField(Object obj, Class klass) {
         return getField(genericObjects, obj, klass, genericObjectId);
+    }
+
+    ObjectField getObjectField(Object obj) {
+        return getField(genericObjects, obj, obj.getClass(), genericObjectId);
     }
 
     public static final class ObjectField {
@@ -181,23 +180,37 @@ class AsmBuilder {
         return fieldObjects;
     }
 
-    void emitFieldInitialization(SkinnyMethodAdapter init, int objectsParameterIndex) {
-        int i = 0;
+    Map<String, Object> getObjectFieldMap() {
+        Map<String, Object> m = new HashMap<>();
         for (ObjectField f : objectFields) {
-            getClassVisitor().visitField(ACC_PRIVATE | ACC_FINAL, f.name, ci(f.klass), null, null);
-            init.aload(0);
-            init.aload(objectsParameterIndex);
-            init.pushInt(i++);
-            init.aaload();
+            m.put(f.name, f.value);
+        }
 
-            if (f.klass.isPrimitive()) {
-                Class boxedType = boxedType(f.klass);
-                init.checkcast(boxedType);
-                unboxNumber(init, boxedType, f.klass);
-            } else {
-                init.checkcast(f.klass);
+        return m;
+    }
+
+    void emitStaticFieldInitialization(SkinnyMethodAdapter clinit, String classID) {
+        if (!objectFields.isEmpty()) {
+            clinit.ldc(classID);
+            clinit.invokestatic(AbstractAsmLibraryInterface.class, "getStaticClassData", Map.class, String.class);
+            for (ObjectField f : objectFields) {
+                getClassVisitor().visitField(ACC_PRIVATE | ACC_FINAL | ACC_STATIC, f.name, ci(f.klass), null, null).visitEnd();
+                clinit.dup();
+                clinit.ldc(f.name);
+                clinit.invokeinterface(Map.class, "get", Object.class, Object.class);
+                if (f.klass.isPrimitive()) {
+                    Class boxedType = boxedType(f.klass);
+                    clinit.checkcast(boxedType);
+                    unboxNumber(clinit, boxedType, f.klass);
+                } else {
+                    clinit.checkcast(f.klass);
+                }
+                clinit.putstatic(getClassNamePath(), f.name, ci(f.klass));
             }
-            init.putfield(getClassNamePath(), f.name, ci(f.klass));
+
+            clinit.pop();
+            clinit.ldc(classID);
+            clinit.invokestatic(AbstractAsmLibraryInterface.class, "removeStaticClassData", void.class, String.class);
         }
     }
 }

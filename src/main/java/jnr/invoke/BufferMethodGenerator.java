@@ -155,12 +155,11 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
         }
 
         // Create a new InvocationBuffer
-        mv.aload(0);
-        mv.getfield(builder.getClassNamePath(), builder.getCallContextFieldName(callContext), ci(CallContext.class));
+        mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(callContext), ci(CallContext.class));
         mv.invokestatic(AsmRuntime.class, "newHeapInvocationBuffer", HeapInvocationBuffer.class, CallContext.class);
         // [ stack contains: Invoker, Function, HeapInvocationBuffer ]
 
-        final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes);
+        final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes, true);
         final LocalVariable[] converted = new LocalVariable[parameterTypes.length];
         LocalVariable[] strategies = new LocalVariable[parameterTypes.length];
 

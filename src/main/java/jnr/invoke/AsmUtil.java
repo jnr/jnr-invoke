@@ -308,22 +308,15 @@ final class AsmUtil {
     }
 
     static LocalVariable[] getParameterVariables(ParameterType[] parameterTypes) {
+        return getParameterVariables(parameterTypes, false);
+    }
+
+    static LocalVariable[] getParameterVariables(ParameterType[] parameterTypes, boolean isStatic) {
         LocalVariable[] lvars = new LocalVariable[parameterTypes.length];
-        int lvar = 1;
+        int lvar = isStatic ? 0 : 1;
         for (int i = 0; i < parameterTypes.length; i++) {
             lvars[i] = new LocalVariable(parameterTypes[i].getDeclaredType(), lvar);
             lvar += calculateLocalVariableSpace(parameterTypes[i]);
-        }
-
-        return lvars;
-    }
-
-    static LocalVariable[] getParameterVariables(Class[] parameterTypes) {
-        LocalVariable[] lvars = new LocalVariable[parameterTypes.length];
-        int idx = 1;
-        for (int i = 0; i < parameterTypes.length; i++) {
-            lvars[i] = new LocalVariable(parameterTypes[i], idx);
-            idx += calculateLocalVariableSpace(parameterTypes[i]);
         }
 
         return lvars;
@@ -393,8 +386,7 @@ final class AsmUtil {
     }
 
     static void getfield(SkinnyMethodAdapter mv, AsmBuilder builder, AsmBuilder.ObjectField field) {
-        mv.aload(0);
-        mv.getfield(builder.getClassNamePath(), field.name, ci(field.klass));
+        mv.getstatic(builder.getClassNamePath(), field.name, ci(field.klass));
     }
 
     static void tryfinally(SkinnyMethodAdapter mv, Runnable codeBlock, Runnable finallyBlock) {
@@ -425,9 +417,8 @@ final class AsmUtil {
                 mv.checkcast(toNativeMethod.getParameterTypes()[0]);
             }
 
-            mv.aload(0);
             AsmBuilder.ObjectField toNativeConverterField = builder.getToNativeConverterField(parameterConverter);
-            mv.getfield(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
+            mv.getstatic(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
             if (!toNativeMethod.getDeclaringClass().equals(toNativeConverterField.klass)) {
                 mv.checkcast(toNativeMethod.getDeclaringClass());
             }

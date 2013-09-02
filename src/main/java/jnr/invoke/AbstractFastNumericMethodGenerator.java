@@ -45,7 +45,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         // [ stack contains: Invoker, Function ]
         final Class nativeIntType = getInvokerType();
         final LocalVariable objCount = localVariableAllocator.allocate(int.class);
-        final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes);
+        final LocalVariable[] parameters = AsmUtil.getParameterVariables(parameterTypes, true);
         final LocalVariable[] converted = new LocalVariable[parameterTypes.length];
         int pointerCount = 0;
 
@@ -132,11 +132,10 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
                     mv.aload(converted[i]);
                     mv.aload(strategies[i]);
-                    mv.aload(0);
 
                     ObjectParameterInfo info = ObjectParameterInfo.create(i, parameterTypes[i].getDataDirection().getArrayFlags());
 
-                    mv.getfield(builder.getClassNamePath(), builder.getObjectParameterInfoName(info),
+                    mv.getstatic(builder.getClassNamePath(), builder.getObjectParameterInfoName(info),
                             ci(ObjectParameterInfo.class));
                 }
             }

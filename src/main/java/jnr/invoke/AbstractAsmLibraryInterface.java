@@ -18,20 +18,33 @@
 
 package jnr.invoke;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  *
  */
 public abstract class AbstractAsmLibraryInterface {
-    public static final com.kenai.jffi.Invoker ffi = com.kenai.jffi.Invoker.getInstance();
+    protected static final com.kenai.jffi.Invoker ffi = com.kenai.jffi.Invoker.getInstance();
+    private static final Map<String, Map<String, Object>> staticClassDataMap = Collections.synchronizedMap(new HashMap<String, Map<String, Object>>());
+//
+//    protected AbstractAsmLibraryInterface() {
+//    }
 
-    // Strong ref to keep the library alive
-    protected final Library library;
-
-    public AbstractAsmLibraryInterface(Library library) {
-        this.library = library;
+    protected static Map<String, Object> getStaticClassData(String classID) {
+        Map<String, Object> m = staticClassDataMap.get(classID);
+        if (m != null) {
+            return m;
+        }
+        return Collections.emptyMap();
     }
 
-    final Library getLibrary() {
-        return library;
+    protected static void removeStaticClassData(String classID) {
+        staticClassDataMap.remove(classID);
+    }
+
+    static void setStaticClassData(String classID, Map<String, Object> staticClassData) {
+        staticClassDataMap.put(classID, staticClassData);
     }
 }
