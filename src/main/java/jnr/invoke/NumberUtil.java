@@ -26,6 +26,8 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+import static jnr.invoke.Util.sizeof;
+
 final class NumberUtil {
     private NumberUtil() {}
     private static final Map<Class, MethodHandle> unboxingHandles;
@@ -244,59 +246,6 @@ final class NumberUtil {
                 narrow(mv, from, to);
                 widen(mv, from, to);
                 break;
-        }
-    }
-
-    static int sizeof(SignatureType type) {
-        return sizeof(type.getNativeType());
-    }
-
-    static int sizeof(NativeType nativeType) {
-        switch (nativeType) {
-            case SCHAR:
-                return com.kenai.jffi.Type.SCHAR.size();
-
-            case UCHAR:
-                return com.kenai.jffi.Type.UCHAR.size();
-
-            case SSHORT:
-                return com.kenai.jffi.Type.SSHORT.size();
-
-            case USHORT:
-                return com.kenai.jffi.Type.USHORT.size();
-
-            case SINT:
-                return com.kenai.jffi.Type.SINT.size();
-
-            case UINT:
-                return com.kenai.jffi.Type.UINT.size();
-
-            case SLONG:
-                return com.kenai.jffi.Type.SLONG.size();
-
-            case ULONG:
-                return com.kenai.jffi.Type.ULONG.size();
-
-            case SLONG_LONG:
-                return com.kenai.jffi.Type.SLONG_LONG.size();
-
-            case ULONG_LONG:
-                return com.kenai.jffi.Type.ULONG_LONG.size();
-
-            case FLOAT:
-                return com.kenai.jffi.Type.FLOAT.size();
-
-            case DOUBLE:
-                return com.kenai.jffi.Type.DOUBLE.size();
-
-            case POINTER:
-                return com.kenai.jffi.Type.POINTER.size();
-
-            case VOID:
-                return 0;
-
-            default:
-                throw new UnsupportedOperationException("cannot determine size of " + nativeType);
         }
     }
 

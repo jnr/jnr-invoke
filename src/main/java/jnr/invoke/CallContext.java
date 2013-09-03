@@ -32,7 +32,7 @@
 
 package jnr.invoke;
 
-import static jnr.invoke.SignatureType.jffiType;
+import static jnr.invoke.Util.jffiType;
 
 /**
  * Native function call context

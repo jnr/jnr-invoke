@@ -30,6 +30,7 @@ import java.lang.reflect.Modifier;
 
 import static jnr.invoke.CodegenUtils.*;
 import static jnr.invoke.NumberUtil.*;
+import static jnr.invoke.Util.sizeof;
 
 final class AsmUtil {
     private AsmUtil() {}

@@ -27,12 +27,12 @@ public final class ParameterType extends SignatureType {
     }
 
     public static ParameterType primitive(NativeType nativeType, Class javaType) {
-        return new ParameterType(nativeType, javaType, DataDirection.INOUT, jffiType(nativeType));
+        return new ParameterType(nativeType, javaType, DataDirection.INOUT, Util.jffiType(nativeType));
     }
 
     static ParameterType object(NativeType nativeType, Class javaType, DataDirection dataDirection,
                                 ObjectParameterStrategyLookup stategyLookup) {
-        return new ParameterType(nativeType, javaType, dataDirection, jffiType(nativeType));
+        return new ParameterType(nativeType, javaType, dataDirection, Util.jffiType(nativeType));
     }
 
     public static interface ObjectParameterStrategyLookup {

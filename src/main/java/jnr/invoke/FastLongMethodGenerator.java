@@ -23,7 +23,6 @@ import com.kenai.jffi.Platform;
 
 import static jnr.invoke.CodegenUtils.ci;
 import static jnr.invoke.FastIntMethodGenerator.isFastIntType;
-import static jnr.invoke.NumberUtil.sizeof;
 import static jnr.invoke.Util.getBooleanProperty;
 
 /**
@@ -120,7 +119,7 @@ final class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator {
 
     private static boolean isFastLongType(Platform platform, SignatureType type) {
         return isFastIntType(platform, type)
-            || (type.getNativeType() == NativeType.POINTER && sizeof(NativeType.POINTER) == 8)
+            || (type.getNativeType() == NativeType.POINTER && type.size() == 8)
             || type.getNativeType() == NativeType.SLONG || type.getNativeType() == NativeType.ULONG
             || type.getNativeType() == NativeType.SLONG_LONG || type.getNativeType() == NativeType.ULONG_LONG;
     }
@@ -128,7 +127,7 @@ final class FastLongMethodGenerator extends AbstractFastNumericMethodGenerator {
     static boolean isFastLongResult(Platform platform, ResultType resultType) {
         return isFastLongType(platform, resultType)
                 || resultType.getNativeType() == NativeType.VOID
-                || (resultType.getNativeType() == NativeType.POINTER && sizeof(NativeType.POINTER) == 8)
+                || (resultType.getNativeType() == NativeType.POINTER && resultType.size() == 8)
                 ;
     }
 

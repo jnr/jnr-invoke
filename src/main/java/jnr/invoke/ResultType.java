@@ -21,7 +21,7 @@ package jnr.invoke;
 public class ResultType extends SignatureType {
 
     public static ResultType primitive(NativeType nativeType, Class javaType) {
-        return new ResultType(nativeType, javaType, jffiType(nativeType));
+        return new ResultType(nativeType, javaType, Util.jffiType(nativeType));
     }
 
 

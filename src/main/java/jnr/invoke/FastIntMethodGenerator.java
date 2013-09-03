@@ -22,7 +22,6 @@ import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Platform;
 
 import static jnr.invoke.CodegenUtils.ci;
-import static jnr.invoke.NumberUtil.sizeof;
 import static jnr.invoke.Util.getBooleanProperty;
 
 /**
@@ -126,7 +125,7 @@ final class FastIntMethodGenerator extends AbstractFastNumericMethodGenerator {
             case UINT:
             case SLONG:
             case ULONG:
-                return sizeof(type.getNativeType()) <= 4;
+                return type.size() <= 4;
 
             default:
                 return false;

@@ -31,7 +31,7 @@ import static jnr.invoke.AbstractFastNumericMethodGenerator.emitParameterStrateg
 import static jnr.invoke.AbstractFastNumericMethodGenerator.hasPointerParameterStrategy;
 import static jnr.invoke.CodegenUtils.ci;
 import static jnr.invoke.NumberUtil.convertPrimitive;
-import static jnr.invoke.NumberUtil.sizeof;
+import static jnr.invoke.Util.sizeof;
 
 /**
  *

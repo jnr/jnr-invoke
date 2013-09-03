@@ -18,6 +18,8 @@
 
 package jnr.invoke;
 
+import static jnr.invoke.Util.jffiType;
+
 /**
  * NativeType defines the primitive types supported internally.
  *
@@ -64,5 +66,9 @@ public enum NativeType {
     DOUBLE,
 
     /** Native memory address.  Equivalent to a C void* or char* pointer type.  Can be either 4 or 8 bytes in size, depending on the platform. */
-    POINTER
+    POINTER;
+
+    int size() {
+        return jffiType(this).size();
+    }
 }
