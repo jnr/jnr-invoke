@@ -20,6 +20,7 @@ package jnr.invoke;
 
 import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Function;
+import com.kenai.jffi.Invoker;
 
 import static jnr.invoke.AsmUtil.*;
 import static jnr.invoke.CodegenUtils.*;
@@ -44,12 +45,11 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                 sig(resultType.getDeclaredType(), javaParameterTypes), null, null);
         mv.start();
 
-        // Retrieve the static 'ffi' Invoker instance
-        mv.getstatic(p(AbstractAsmLibraryInterface.class), "ffi", ci(com.kenai.jffi.Invoker.class));
+        // Retrieve the jffi Invoker instance
+        mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(Invoker.getInstance(), com.kenai.jffi.Invoker.class), ci(com.kenai.jffi.Invoker.class));
 
         // retrieve the call context and function address
         mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(function.getCallContext()), ci(CallContext.class));
-
         mv.getstatic(builder.getClassNamePath(), builder.getFunctionAddressFieldName(function), ci(long.class));
 
         LocalVariableAllocator localVariableAllocator = new LocalVariableAllocator(parameterTypes);

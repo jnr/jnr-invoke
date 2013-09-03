@@ -192,7 +192,7 @@ class AsmBuilder {
     void emitStaticFieldInitialization(SkinnyMethodAdapter clinit, String classID) {
         if (!objectFields.isEmpty()) {
             clinit.ldc(classID);
-            clinit.invokestatic(AbstractAsmLibraryInterface.class, "getStaticClassData", Map.class, String.class);
+            clinit.invokestatic(AsmRuntime.class, "getStaticClassData", Map.class, String.class);
             for (ObjectField f : objectFields) {
                 getClassVisitor().visitField(ACC_PRIVATE | ACC_FINAL | ACC_STATIC, f.name, ci(f.klass), null, null).visitEnd();
                 clinit.dup();
@@ -210,7 +210,7 @@ class AsmBuilder {
 
             clinit.pop();
             clinit.ldc(classID);
-            clinit.invokestatic(AbstractAsmLibraryInterface.class, "removeStaticClassData", void.class, String.class);
+            clinit.invokestatic(AsmRuntime.class, "removeStaticClassData", void.class, String.class);
         }
     }
 }

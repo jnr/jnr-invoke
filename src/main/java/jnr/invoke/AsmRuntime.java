@@ -22,14 +22,34 @@ import com.kenai.jffi.CallContext;
 import com.kenai.jffi.*;
 
 import java.nio.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility methods that are used at runtime by generated code.
  */
 public final class AsmRuntime {
-    public static final MemoryIO IO = MemoryIO.getInstance();
-
     private AsmRuntime() {}
+
+    private static final Map<String, Map<String, Object>> staticClassDataMap = new ConcurrentHashMap<String, Map<String, Object>>();
+
+    public static Map<String, Object> getStaticClassData(String classID) {
+        Map<String, Object> m = staticClassDataMap.get(classID);
+        if (m != null) {
+            return m;
+        }
+        return Collections.emptyMap();
+    }
+
+    public static void removeStaticClassData(String classID) {
+        staticClassDataMap.remove(classID);
+    }
+
+    static void setStaticClassData(String classID, Map<String, Object> staticClassData) {
+        staticClassDataMap.put(classID, staticClassData);
+    }
 
     public static UnsatisfiedLinkError newUnsatisifiedLinkError(String msg) {
         return new UnsatisfiedLinkError(msg);

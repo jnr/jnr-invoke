@@ -59,8 +59,7 @@ public final class Native {
 
         AsmBuilder builder = new AsmBuilder(p(Native.class) + "$jnr$ffi$" + nextClassID.getAndIncrement(), cv, classLoader);
 
-        cv.visit(V1_7, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(AbstractAsmLibraryInterface.class),
-                new String[0]);
+        cv.visit(V1_7, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(java.lang.Object.class), new String[0]);
         Function jffiFunction = new Function(nativeAddress.address(), context.getNativeCallContext());
         ResultType resultType = context.getResultType().asPrimitiveType();
         ParameterType[] parameterTypes = new ParameterType[context.getParameterCount()];
@@ -84,7 +83,7 @@ public final class Native {
             SkinnyMethodAdapter init = new SkinnyMethodAdapter(cv, ACC_PUBLIC, "<init>", sig(void.class), null, null);
             init.start();
             init.aload(0);
-            init.invokespecial(p(AbstractAsmLibraryInterface.class), "<init>", sig(void.class));
+            init.invokespecial(p(java.lang.Object.class), "<init>", sig(void.class));
             init.voidreturn();
             init.visitMaxs(10, 10);
             init.visitEnd();
@@ -95,7 +94,7 @@ public final class Native {
         if (!fields.isEmpty()) {
             SkinnyMethodAdapter clinit = new SkinnyMethodAdapter(cv, ACC_PUBLIC | ACC_STATIC, "<clinit>", sig(void.class), null, null);
             clinit.start();
-            AbstractAsmLibraryInterface.setStaticClassData(builder.getClassNamePath(), fields);
+            AsmRuntime.setStaticClassData(builder.getClassNamePath(), fields);
             builder.emitStaticFieldInitialization(clinit, builder.getClassNamePath());
             clinit.voidreturn();
             clinit.visitMaxs(10, 10);

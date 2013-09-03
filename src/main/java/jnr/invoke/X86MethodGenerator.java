@@ -205,8 +205,8 @@ class X86MethodGenerator implements MethodGenerator {
                 mv.lstore(tmp[i]);
             }
 
-            // Retrieve the static 'ffi' Invoker instance
-            mv.getstatic(p(AbstractAsmLibraryInterface.class), "ffi", ci(Invoker.class));
+            // Retrieve the jffi Invoker instance
+            mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(Invoker.getInstance(), com.kenai.jffi.Invoker.class), ci(com.kenai.jffi.Invoker.class));
 
             // retrieve the call context and function address
             mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(function.getCallContext()), ci(CallContext.class));
