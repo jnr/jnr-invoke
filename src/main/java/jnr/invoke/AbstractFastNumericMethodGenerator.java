@@ -28,7 +28,6 @@ import java.lang.reflect.Modifier;
 import java.nio.*;
 import java.util.Map;
 
-import static jnr.invoke.AsmUtil.*;
 import static jnr.invoke.CodegenUtils.ci;
 import static jnr.invoke.CodegenUtils.p;
 import static jnr.invoke.NumberUtil.*;
@@ -97,7 +96,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
         // narrow/widen the return value if needed
         convertPrimitive(mv, nativeReturnType, javaReturnType, resultType.getNativeType());
-        emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, null);
+        emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted);
 
         /* --  method returns above - below is an alternative path -- */
 

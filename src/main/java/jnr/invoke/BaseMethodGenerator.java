@@ -90,9 +90,9 @@ abstract class BaseMethodGenerator implements MethodGenerator {
     }
 
     static void emitEpilogue(final AsmBuilder builder, final SkinnyMethodAdapter mv, final ResultType resultType,
-                           final ParameterType[] parameterTypes,
-                      final LocalVariable[] parameters, final LocalVariable[] converted, final Runnable sessionCleanup) {
-        if (isPostInvokeRequired(parameterTypes) || sessionCleanup != null) {
+                             final ParameterType[] parameterTypes,
+                             final LocalVariable[] parameters, final LocalVariable[] converted) {
+        if (isPostInvokeRequired(parameterTypes)) {
             tryfinally(mv, new Runnable() {
                         public void run() {
                             emitFromNativeConversion(builder, mv, resultType, resultType.effectiveJavaType());
@@ -103,9 +103,6 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                     new Runnable() {
                         public void run() {
                             emitPostInvoke(builder, mv, parameterTypes, parameters, converted);
-                            if (sessionCleanup != null) {
-                                sessionCleanup.run();
-                            }
                         }
                     }
             );

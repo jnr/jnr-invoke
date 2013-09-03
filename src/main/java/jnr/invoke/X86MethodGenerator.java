@@ -179,7 +179,7 @@ class X86MethodGenerator implements MethodGenerator {
         if (pointerCount > 0) {
             mv.label(convertResult);
         }
-        emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, null);
+        emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted);
 
         /* --  method returns above - below is the object path, which will jump back above to return -- */
 

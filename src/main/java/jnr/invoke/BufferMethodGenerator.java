@@ -30,7 +30,6 @@ import java.util.Map;
 import static jnr.invoke.AbstractFastNumericMethodGenerator.emitParameterStrategyLookup;
 import static jnr.invoke.AbstractFastNumericMethodGenerator.hasPointerParameterStrategy;
 import static jnr.invoke.CodegenUtils.ci;
-import static jnr.invoke.CodegenUtils.p;
 import static jnr.invoke.NumberUtil.convertPrimitive;
 import static jnr.invoke.NumberUtil.sizeof;
 
@@ -127,33 +126,8 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
         mv.invokevirtual(HeapInvocationBuffer.class, marshalOp.methodName, void.class, marshalOp.primitiveClass);
     }
 
-    static boolean isSessionRequired(ParameterType parameterType) {
-        return false;
-    }
-
-
-    static boolean isSessionRequired(ParameterType[] parameterTypes) {
-        for (ParameterType parameterType : parameterTypes) {
-            if (isSessionRequired(parameterType)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     void generateBufferInvocation(final AsmBuilder builder, final SkinnyMethodAdapter mv, LocalVariableAllocator localVariableAllocator, CallContext callContext, final ResultType resultType, final ParameterType[] parameterTypes) {
         // [ stack contains: Invoker, Function ]
-        final boolean sessionRequired = isSessionRequired(parameterTypes);
-        final LocalVariable session = localVariableAllocator.allocate(InvocationSession.class);
-
-        if (sessionRequired) {
-            mv.newobj(p(InvocationSession.class));
-            mv.dup();
-            mv.invokespecial(InvocationSession.class, "<init>", void.class);
-            mv.astore(session);
-        }
-
         // Create a new InvocationBuffer
         mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(callContext), ci(CallContext.class));
         mv.invokestatic(AsmRuntime.class, "newHeapInvocationBuffer", HeapInvocationBuffer.class, CallContext.class);
@@ -166,9 +140,6 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
         for (int i = 0; i < parameterTypes.length; ++i) {
             mv.dup(); // dup ref to HeapInvocationBuffer
 
-            if (isSessionRequired(parameterTypes[i])) {
-                mv.aload(session);
-            }
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
 
             final Class javaParameterType = parameterTypes[i].effectiveJavaType();
@@ -199,11 +170,6 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
 
         // narrow/widen the return value if needed
         convertPrimitive(mv, iop.primitiveClass, resultType.effectiveJavaType(), resultType.getNativeType());
-        emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted, sessionRequired ? new Runnable() {
-            public void run() {
-                mv.aload(session);
-                mv.invokevirtual(p(InvocationSession.class), "finish", "()V");
-            }
-        } : null);
+        emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted);
     }
 }
