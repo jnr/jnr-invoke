@@ -1,4 +1,3 @@
-package jnr.invoke;
 /*
  * Copyright (C) 2011-2013 Wayne Meissner
  *
@@ -17,10 +16,12 @@ package jnr.invoke;
  * limitations under the License.
  */
 
+package jnr.invoke;
+
 import com.kenai.jffi.Function;
 import com.kenai.jffi.ObjectParameterInfo;
 import com.kenai.jffi.Platform;
-import jnr.ffi.provider.Invoker;
+import com.kenai.jffi.Invoker;
 import org.objectweb.asm.Label;
 
 import java.util.concurrent.atomic.AtomicLong;

@@ -19,7 +19,6 @@
 package jnr.invoke;
 
 import com.kenai.jffi.*;
-import jnr.ffi.Pointer;
 import jnr.x86asm.Assembler;
 
 import java.io.PrintStream;
@@ -128,7 +127,7 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
                 X86Disassembler disassembler = X86Disassembler.create();
                 disassembler.setMode(Platform.getPlatform().getCPU() == Platform.CPU.I386
                         ? X86Disassembler.Mode.I386 : X86Disassembler.Mode.X86_64);
-                disassembler.setInputBuffer(Pointer.wrap(jnr.ffi.Runtime.getSystemRuntime(), fn), asm.offset());
+                disassembler.setInputBuffer(fn, asm.offset());
                 while (disassembler.disassemble()) {
                     dbg.printf("%8x: %s\n", disassembler.offset(), disassembler.insn());
                 }

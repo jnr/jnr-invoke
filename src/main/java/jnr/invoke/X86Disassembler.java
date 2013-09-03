@@ -18,15 +18,14 @@
 
 package jnr.invoke;
 
+import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Library;
-import jnr.ffi.*;
-import jnr.ffi.mapper.DefaultTypeMapper;
-import jnr.ffi.types.intptr_t;
-import jnr.ffi.types.size_t;
-import jnr.ffi.types.u_int64_t;
-import jnr.ffi.types.u_int8_t;
+import com.kenai.jffi.MemoryIO;
+import com.kenai.jffi.Type;
 
 import java.io.File;
+import java.nio.charset.Charset;
+import java.util.Arrays;
 
 /**
  *
@@ -38,49 +37,40 @@ class X86Disassembler {
     public enum Mode { I386, X86_64 }
 
     private final UDis86 udis86;
-    final Pointer ud;
+    final long ud;
 
 
     static final class SingletonHolder {
-        static final UDis86 INSTANCE = loadUDis86();
-        static final long syntax;
+        static final UDis86 INSTANCE;
         static {
             Library lib;
-            long intel = 0;
-            for (String path : new String[] { "/usr/local/lib", "/opt/local/lib" }) {
+            UDis86 udis86 = new UDis86();
+            for (String path : new String[] { "/usr/local/lib", "/opt/local/lib", "/usr/lib" }) {
                 lib = Library.getCachedInstance(new File(path, System.mapLibraryName("udis86")).getAbsolutePath(),
                         Library.LOCAL | Library.NOW);
                 if (lib != null) {
-                    intel = lib.getSymbolAddress("ud_translate_intel");
+                    udis86.ud_init = function(lib, "ud_init", Type.VOID, Type.POINTER);
+                    udis86.ud_set_mode = function(lib, "ud_set_mode", Type.VOID, Type.POINTER, Type.SCHAR);
+                    udis86.ud_set_input_buffer = function(lib, "ud_set_input_buffer", Type.VOID, Type.POINTER, Type.POINTER, Type.SLONG);
+                    udis86.ud_set_syntax = function(lib, "ud_set_syntax", Type.VOID, Type.POINTER, Type.POINTER);
+                    udis86.ud_disassemble = function(lib, "ud_disassemble", Type.SINT, Type.POINTER);
+                    udis86.ud_insn_asm = function(lib, "ud_insn_asm", Type.POINTER, Type.POINTER);
+                    udis86.ud_insn_off = function(lib, "ud_insn_off", Type.SLONG_LONG, Type.POINTER);
+                    udis86.intel = lib.getSymbolAddress("ud_translate_intel");
+                    udis86.att = lib.getSymbolAddress("ud_translate_att");
                     break;
                 }
             }
-            syntax = intel;
-        }
-//        static final long intel = ((AbstractAsmLibraryInterface) INSTANCE).getLibrary().findSymbolAddress("ud_translate_intel");
-//        static final long att = ((AbstractAsmLibraryInterface) INSTANCE).getLibrary().findSymbolAddress("ud_translate_att");
-    }
-
-    static UDis86 loadUDis86() {
-        DefaultTypeMapper typeMapper = new DefaultTypeMapper();
-        typeMapper.put(X86Disassembler.class, new X86DisassemblerConverter());
-        return LibraryLoader.create(UDis86.class)
-                .library("udis86")
-                .search("/usr/local/lib")
-                .search("/opt/local/lib")
-                .search("/usr/lib")
-                .mapper(typeMapper)
-                .load();
-    }
-
-    @ToNativeConverter.NoContext
-    public static final class X86DisassemblerConverter implements jnr.ffi.mapper.ToNativeConverter<X86Disassembler, Pointer> {
-        public Pointer toNative(X86Disassembler value, jnr.ffi.mapper.ToNativeContext context) {
-            return value.ud;
+            INSTANCE = udis86;
         }
 
-        public Class<Pointer> nativeType() {
-            return Pointer.class;
+        private static Function function(Library library, String name, Type resultType, Type... parameterTypes) {
+            long address = library.getSymbolAddress(name);
+            if (address == 0L) {
+                throw new UnsatisfiedLinkError("cannot find symbol " + name);
+            }
+            CallContext callContext = com.kenai.jffi.CallContext.getCallContext(resultType, parameterTypes, com.kenai.jffi.CallingConvention.DEFAULT, true);
+            return new Function(address, callContext);
         }
     }
 
@@ -98,56 +88,72 @@ class X86Disassembler {
 
     private X86Disassembler(UDis86 udis86) {
         this.udis86 = udis86;
-        this.ud = Memory.allocateDirect(jnr.ffi.Runtime.getRuntime(udis86), 1024, true);
-        this.udis86.ud_init(this.ud);
-        this.udis86.ud_set_syntax(this, SingletonHolder.syntax);
+        this.ud = MemoryIO.getInstance().allocateMemory(1024, true);
+        this.udis86.ud_init.invoke(ud);
+        this.udis86.ud_set_syntax.invoke(ud, udis86.intel);
     }
+
 
     public void setMode(Mode mode) {
-        udis86.ud_set_mode(this, mode == Mode.I386 ? 32 : 64);
+        udis86.ud_set_mode.invoke(ud, mode == Mode.I386 ? 32 : 64);
     }
 
-    public void setInputBuffer(Pointer buffer, int size) {
-        udis86.ud_set_input_buffer(this, buffer, size);
+    public void setInputBuffer(long buffer, int size) {
+        udis86.ud_set_input_buffer.invoke(ud, buffer, size);
     }
 
     public boolean disassemble() {
-        return udis86.ud_disassemble(this) != 0;
+        return (udis86.ud_disassemble.invoke(ud) & 0xff) != 0;
     }
 
     public String insn() {
-        return udis86.ud_insn_asm(this);
+        long ptr = udis86.ud_insn_asm.invoke(ud);
+        return ptr != 0L
+            ? new String(MemoryIO.getInstance().getZeroTerminatedByteArray(ptr), Charset.defaultCharset())
+            : null;
     }
 
     public long offset() {
-        return udis86.ud_insn_off(this);
+        return udis86.ud_insn_off.invoke(ud);
     }
 
-    public String hex() {
-        return udis86.ud_insn_hex(this);
-    }
+    private static final class Function {
+        com.kenai.jffi.CallContext callContext;
+        long address;
 
-    jnr.ffi.Runtime getRuntime() {
-        return jnr.ffi.Runtime.getRuntime(udis86);
-    }
+        private Function(long address, com.kenai.jffi.CallContext callContext) {
+            this.callContext = callContext;
+            this.address = address;
+        }
 
-    public static interface UDis86 {
-        void ud_init(Pointer ud);
-        void ud_set_mode(X86Disassembler ud, @u_int8_t int mode);
-        void ud_set_pc(X86Disassembler ud, @u_int64_t int pc);
-        void ud_set_input_buffer(X86Disassembler ud, Pointer data, @size_t long len);
-        void ud_set_vendor(X86Disassembler ud, int vendor);
-        void ud_set_syntax(X86Disassembler ud, @intptr_t long translator);
-        void ud_input_skip(X86Disassembler ud, @size_t long size);
-        int ud_input_end(X86Disassembler ud);
-        int ud_decode(X86Disassembler ud);
-        int ud_disassemble(X86Disassembler ud);
-        String ud_insn_asm(X86Disassembler ud);
-        @intptr_t
-        long ud_insn_ptr(X86Disassembler ud);
-        @u_int64_t
-        long ud_insn_off(X86Disassembler ud);
-        String ud_insn_hex(X86Disassembler ud);
-        int ud_insn_len(X86Disassembler ud);
+        private long invoke(long... params) {
+            if (callContext.getParameterCount() != params.length) {
+                throw new IllegalArgumentException(String.format("incorrect arity, (%d for %d)",
+                        params.length, callContext.getParameterCount()));
+            }
+            switch (callContext.getParameterCount()) {
+                case 0:
+                    return com.kenai.jffi.Invoker.getInstance().invokeN0(callContext, address);
+                case 1:
+                    return com.kenai.jffi.Invoker.getInstance().invokeN1(callContext, address, params[0]);
+                case 2:
+                    return com.kenai.jffi.Invoker.getInstance().invokeN2(callContext, address, params[0], params[1]);
+                case 3:
+                    return com.kenai.jffi.Invoker.getInstance().invokeN3(callContext, address, params[0], params[1], params[2]);
+            }
+            throw new RuntimeException("unsupported function arity: " + callContext.getParameterCount());
+        }
+
+    }
+    public static final class UDis86 {
+        Function ud_init;     // (X86Disassembler ud)
+        Function ud_set_mode; // (X86Disassembler ud, @u_int8_t int mode);
+        Function ud_set_input_buffer; // (X86Disassembler ud, Pointer data, @size_t long len);
+        Function ud_set_syntax; // (X86Disassembler ud, @intptr_t long translator);
+        Function ud_disassemble; // (X86Disassembler ud);
+        Function ud_insn_asm; // (X86Disassembler ud);
+        Function ud_insn_off; // (X86Disassembler ud);
+        long intel;
+        long att;
     }
 }

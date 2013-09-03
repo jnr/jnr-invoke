@@ -23,7 +23,7 @@ import jnr.x86asm.Assembler;
 import jnr.x86asm.REG;
 import jnr.x86asm.Register;
 
-import static jnr.ffi.provider.jffi.CodegenUtils.sig;
+import static jnr.invoke.CodegenUtils.sig;
 import static jnr.x86asm.Asm.*;
 
 /**
