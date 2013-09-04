@@ -94,18 +94,18 @@ class X86MethodGenerator implements MethodGenerator {
         boolean wrapperNeeded = false;
 
         for (int i = 0; i < parameterTypes.length; ++i) {
-            wrapperNeeded |= parameterTypes[i].getToNativeConverter() != null || !parameterTypes[i].effectiveJavaType().isPrimitive();
-            if (!parameterTypes[i].effectiveJavaType().isPrimitive()) {
+            wrapperNeeded |= parameterTypes[i].getToNativeConverter() != null || !parameterTypes[i].nativeJavaType().isPrimitive();
+            if (!parameterTypes[i].nativeJavaType().isPrimitive()) {
                 nativeParameterTypes[i] = getNativeClass(parameterTypes[i].getNativeType());
             } else {
-                nativeParameterTypes[i] = parameterTypes[i].effectiveJavaType();
+                nativeParameterTypes[i] = parameterTypes[i].nativeJavaType();
             }
         }
 
         Class nativeReturnType;
-        wrapperNeeded |= resultType.getFromNativeConverter() != null || !resultType.effectiveJavaType().isPrimitive();
-        if (resultType.effectiveJavaType().isPrimitive()) {
-            nativeReturnType = resultType.effectiveJavaType();
+        wrapperNeeded |= resultType.getFromNativeConverter() != null || !resultType.nativeJavaType().isPrimitive();
+        if (resultType.nativeJavaType().isPrimitive()) {
+            nativeReturnType = resultType.nativeJavaType();
         } else {
             nativeReturnType = getNativeClass(resultType.getNativeType());
         }
@@ -147,7 +147,7 @@ class X86MethodGenerator implements MethodGenerator {
         int pointerCount = 0;
 
         for (int i = 0; i < parameterTypes.length; ++i) {
-            Class javaParameterClass = parameterTypes[i].effectiveJavaType();
+            Class javaParameterClass = parameterTypes[i].nativeJavaType();
             Class nativeParameterClass = nativeParameterTypes[i];
 
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
@@ -176,7 +176,7 @@ class X86MethodGenerator implements MethodGenerator {
         mv.invokestatic(builder.getClassNamePath(), nativeMethodName, sig(nativeReturnType, nativeParameterTypes));
 
         // widen/narrow result as required
-        convertPrimitive(mv, nativeReturnType, resultType.effectiveJavaType());
+        convertPrimitive(mv, nativeReturnType, resultType.nativeJavaType());
 
         if (pointerCount > 0) {
             mv.label(convertResult);
@@ -220,7 +220,7 @@ class X86MethodGenerator implements MethodGenerator {
             // Need to load all the converters onto the stack
             for (int i = 0; i < parameterTypes.length; i++) {
                 LocalVariable[] strategies = new LocalVariable[parameterTypes.length];
-                Class javaParameterType = parameterTypes[i].effectiveJavaType();
+                Class javaParameterType = parameterTypes[i].nativeJavaType();
                 if (hasPointerParameterStrategy(parameterTypes[i])) {
                     mv.aload(converted[i]);
                     emitParameterStrategyLookup(mv, javaParameterType);
@@ -252,7 +252,7 @@ class X86MethodGenerator implements MethodGenerator {
                 mv.pop2();
 
             }
-            convertPrimitive(mv, long.class, resultType.effectiveJavaType(), resultType.getNativeType());
+            convertPrimitive(mv, long.class, resultType.nativeJavaType(), resultType.getNativeType());
 
             // Jump to the main conversion/boxing code above
             mv.go_to(convertResult);
@@ -294,7 +294,7 @@ class X86MethodGenerator implements MethodGenerator {
 
 
     static boolean isSupportedResult(ResultType resultType) {
-        return isSupportedType(resultType) || void.class == resultType.effectiveJavaType()
+        return isSupportedType(resultType) || void.class == resultType.nativeJavaType()
                 || resultType.getNativeType() == NativeType.POINTER
                 ;
     }

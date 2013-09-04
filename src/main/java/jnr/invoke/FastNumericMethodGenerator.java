@@ -128,7 +128,7 @@ class FastNumericMethodGenerator extends AbstractFastNumericMethodGenerator {
 
     static boolean isFastNumericParameter(Platform platform, ParameterType parameterType) {
         return isNumericType(platform, parameterType)
-            || (parameterType.getNativeType() == NativeType.POINTER && isSupportedPointerParameterType(parameterType.effectiveJavaType()));
+            || (parameterType.getNativeType() == NativeType.POINTER && isSupportedPointerParameterType(parameterType.nativeJavaType()));
     }
 
     private static boolean isSupportedPointerParameterType(Class javaParameterType) {

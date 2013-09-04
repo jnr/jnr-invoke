@@ -142,7 +142,7 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
 
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
 
-            final Class javaParameterType = parameterTypes[i].effectiveJavaType();
+            final Class javaParameterType = parameterTypes[i].nativeJavaType();
             ToNativeOp op = ToNativeOp.get(parameterTypes[i]);
             if (op != null && op.isPrimitive()) {
                 emitPrimitiveOp(mv, parameterTypes[i], op);
@@ -169,7 +169,7 @@ final class BufferMethodGenerator extends BaseMethodGenerator {
         mv.invokevirtual(Invoker.class, iop.methodName, iop.primitiveClass, CallContext.class, long.class, HeapInvocationBuffer.class);
 
         // narrow/widen the return value if needed
-        convertPrimitive(mv, iop.primitiveClass, resultType.effectiveJavaType(), resultType.getNativeType());
+        convertPrimitive(mv, iop.primitiveClass, resultType.nativeJavaType(), resultType.getNativeType());
         emitEpilogue(builder, mv, resultType, parameterTypes, parameters, converted);
     }
 }

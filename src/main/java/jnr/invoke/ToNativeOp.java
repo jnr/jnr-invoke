@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-import static jnr.invoke.AsmUtil.*;
 import static jnr.invoke.NumberUtil.narrow;
 import static jnr.invoke.NumberUtil.widen;
 
@@ -37,7 +36,7 @@ abstract class ToNativeOp {
     }
 
     static ToNativeOp get(ParameterType type) {
-        ToNativeOp op = operations.get(type.effectiveJavaType());
+        ToNativeOp op = operations.get(type.nativeJavaType());
         if (op != null) {
             return op;
 

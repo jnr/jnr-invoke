@@ -45,10 +45,6 @@ public abstract class SignatureType {
         return nativeType;
     }
 
-    public Class javaType() {
-        return javaType;
-    }
-
     public Class getDeclaredType() {
         return javaType;
     }

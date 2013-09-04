@@ -18,33 +18,36 @@
 
 package jnr.invoke;
 
+import java.lang.invoke.MethodHandle;
+
 public class ResultType extends SignatureType {
+    private final MethodHandle resultConverter;
 
     public static ResultType primitive(NativeType nativeType, Class javaType) {
-        return new ResultType(nativeType, javaType, Util.jffiType(nativeType));
+        return new ResultType(nativeType, javaType, Util.jffiType(nativeType), null);
+    }
+
+    public static ResultType primitive(NativeType nativeType, Class javaType, MethodHandle resultConverter) {
+        return new ResultType(nativeType, javaType, Util.jffiType(nativeType), resultConverter);
     }
 
 
-    ResultType(NativeType nativeType, Class javaType, com.kenai.jffi.Type jffiType) {
+    ResultType(NativeType nativeType, Class javaType, com.kenai.jffi.Type jffiType, MethodHandle resultConverter) {
         super(nativeType, javaType, jffiType);
+        this.resultConverter = resultConverter;
     }
 
-    Class effectiveJavaType() {
-        return javaType();
+    Class nativeJavaType() {
+        return resultConverter != null ? resultConverter.type().parameterType(0) : getDeclaredType();
     }
 
-    FromNativeConverter getFromNativeConverter() {
-        return null;
+    MethodHandle getFromNativeConverter() {
+        return resultConverter;
     }
-
-    FromNativeContext getFromNativeContext() {
-        return null;
-    }
-
 
     ResultType asPrimitiveType() {
         return !getDeclaredType().isPrimitive() && Number.class.isAssignableFrom(getDeclaredType())
-                ? new ResultType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), jffiType())
+                ? new ResultType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), jffiType(), resultConverter)
                 : this;
     }
 }

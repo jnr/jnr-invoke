@@ -74,11 +74,4 @@ public final class AsmRuntime {
     public static int intValue(Buffer ptr) {
         return ptr != null && ptr.isDirect()  ? (int) MemoryIO.getInstance().getDirectBufferAddress(ptr) : 0;
     }
-
-    public static void postInvoke(ToNativeConverter.PostInvocation postInvocation, Object j, Object n, ToNativeContext context) {
-        try {
-            postInvocation.postInvoke(j, n, context);
-        } catch (Throwable t) {}
-    }
-
 }

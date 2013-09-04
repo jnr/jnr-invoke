@@ -22,11 +22,11 @@ import com.kenai.jffi.CallContext;
 import com.kenai.jffi.Function;
 import com.kenai.jffi.Invoker;
 
+import java.lang.invoke.MethodHandle;
+
 import static jnr.invoke.AsmUtil.*;
 import static jnr.invoke.CodegenUtils.*;
-import static org.objectweb.asm.Opcodes.ACC_FINAL;
-import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
-import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import static org.objectweb.asm.Opcodes.*;
 
 /**
  *
@@ -66,13 +66,23 @@ abstract class BaseMethodGenerator implements MethodGenerator {
     static LocalVariable loadAndConvertParameter(AsmBuilder builder, SkinnyMethodAdapter mv,
                                                  LocalVariableAllocator localVariableAllocator,
                                                  LocalVariable parameter, ParameterType parameterType) {
-        AsmUtil.load(mv, parameterType.getDeclaredType(), parameter);
-        emitToNativeConversion(builder, mv, parameterType);
 
-        if (parameterType.getToNativeConverter() != null) {
-            LocalVariable converted = localVariableAllocator.allocate(parameterType.getToNativeConverter().nativeType());
-            mv.astore(converted);
-            mv.aload(converted);
+        MethodHandle toNativeConverter = parameterType.getToNativeConverter();
+        if (toNativeConverter != null) {
+            AsmBuilder.ObjectField toNativeConverterField = builder.getObjectField(toNativeConverter);
+            mv.getstatic(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
+        }
+        load(mv, parameterType.getDeclaredType(), parameter);
+
+        if (toNativeConverter != null) {
+            mv.invokevirtual(MethodHandle.class, "invokeExact", toNativeConverter.type().returnType(),
+                toNativeConverter.type().parameterType(0));
+        }
+
+        if (toNativeConverter != null && (parameterType.getPostInvoke() != null || !parameterType.nativeJavaType().isPrimitive())) {
+            LocalVariable converted = localVariableAllocator.allocate(toNativeConverter.type().returnType());
+            store(mv, toNativeConverter.type().returnType(), converted);
+            load(mv, toNativeConverter.type().returnType(), converted);
             return converted;
         }
 
@@ -81,7 +91,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
 
     static boolean isPostInvokeRequired(ParameterType[] parameterTypes) {
         for (ParameterType parameterType : parameterTypes) {
-            if (parameterType.getToNativeConverter() instanceof ToNativeConverter.PostInvocation) {
+            if (parameterType.getPostInvoke() != null) {
                 return true;
             }
         }
@@ -95,7 +105,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
         if (isPostInvokeRequired(parameterTypes)) {
             tryfinally(mv, new Runnable() {
                         public void run() {
-                            emitFromNativeConversion(builder, mv, resultType, resultType.effectiveJavaType());
+                            emitFromNativeConversion(builder, mv, resultType, resultType.nativeJavaType());
                             // ensure there is always at least one instruction inside the try {} block
                             mv.nop();
                         }
@@ -107,7 +117,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                     }
             );
         } else {
-            emitFromNativeConversion(builder, mv, resultType, resultType.effectiveJavaType());
+            emitFromNativeConversion(builder, mv, resultType, resultType.nativeJavaType());
         }
         emitReturnOp(mv, resultType.getDeclaredType());
     }
@@ -115,22 +125,14 @@ abstract class BaseMethodGenerator implements MethodGenerator {
     static void emitPostInvoke(AsmBuilder builder, final SkinnyMethodAdapter mv, ParameterType[] parameterTypes,
                                LocalVariable[] parameters, LocalVariable[] converted) {
         for (int i = 0; i < converted.length; ++i) {
-            if (converted[i] != null && parameterTypes[i].getToNativeConverter() instanceof ToNativeConverter.PostInvocation) {
-                AsmBuilder.ObjectField toNativeConverterField = builder.getObjectField(parameterTypes[i].getToNativeConverter());
-                mv.getstatic(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
-                if (!ToNativeConverter.PostInvocation.class.isAssignableFrom(toNativeConverterField.klass)) {
-                    mv.checkcast(ToNativeConverter.PostInvocation.class);
-                }
+            if (converted[i] != null && parameterTypes[i].getPostInvoke() != null) {
+                MethodHandle postInvoke = parameterTypes[i].getPostInvoke();
+                AsmBuilder.ObjectField postInvokeField = builder.getObjectField(postInvoke);
+                mv.getstatic(builder.getClassNamePath(), postInvokeField.name, ci(postInvokeField.klass));
                 mv.aload(parameters[i]);
                 mv.aload(converted[i]);
-                if (parameterTypes[i].getToNativeContext() != null) {
-                    getfield(mv, builder, builder.getObjectField(parameterTypes[i].getToNativeContext()));
-                } else {
-                    mv.aconst_null();
-                }
-
-                mv.invokestatic(AsmRuntime.class, "postInvoke", void.class,
-                        ToNativeConverter.PostInvocation.class, Object.class, Object.class, ToNativeContext.class);
+                mv.invokevirtual(MethodHandle.class, "invokeExact", postInvoke.type().returnType(),
+                        postInvoke.type().parameterType(0), postInvoke.type().parameterType(1));
             }
         }
     }

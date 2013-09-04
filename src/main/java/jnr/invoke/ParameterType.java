@@ -18,16 +18,35 @@
 
 package jnr.invoke;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+
 public final class ParameterType extends SignatureType {
     private final DataDirection dataDirection;
+    private final MethodHandle parameterConverter;
+    private final MethodHandle postInvoke;
 
     private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection, com.kenai.jffi.Type jffiType) {
+        this(nativeType, javaType, dataDirection, jffiType, null, null);
+    }
+
+    private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection, com.kenai.jffi.Type jffiType,
+                          MethodHandle parameterConverter, MethodHandle postInvoke) {
         super(nativeType, javaType, jffiType);
         this.dataDirection = dataDirection;
+        this.parameterConverter = parameterConverter;
+        this.postInvoke = postInvoke != null
+                ? MethodHandles.catchException(postInvoke, Throwable.class, MethodHandles.constant(postInvoke.type().returnType(), null))
+                : null;
     }
+
 
     public static ParameterType primitive(NativeType nativeType, Class javaType) {
         return new ParameterType(nativeType, javaType, DataDirection.INOUT, Util.jffiType(nativeType));
+    }
+
+    public static ParameterType primitive(NativeType nativeType, Class javaType, MethodHandle parameterConverter, MethodHandle postInvoke) {
+        return new ParameterType(nativeType, javaType, DataDirection.INOUT, Util.jffiType(nativeType), parameterConverter, postInvoke);
     }
 
     static ParameterType object(NativeType nativeType, Class javaType, DataDirection dataDirection,
@@ -43,21 +62,21 @@ public final class ParameterType extends SignatureType {
         return dataDirection;
     }
 
-    ToNativeConverter getToNativeConverter() {
-        return null;
+    MethodHandle getPostInvoke() {
+        return postInvoke;
     }
 
-    ToNativeContext getToNativeContext() {
-        return null;
+    MethodHandle getToNativeConverter() {
+        return parameterConverter;
     }
 
-    Class effectiveJavaType() {
-        return javaType();
+    Class nativeJavaType() {
+        return parameterConverter != null ? parameterConverter.type().returnType() : getDeclaredType();
     }
 
     ParameterType asPrimitiveType() {
         return !getDeclaredType().isPrimitive() && Number.class.isAssignableFrom(getDeclaredType())
-                ? new ParameterType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), getDataDirection(), jffiType())
+                ? new ParameterType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), getDataDirection(), jffiType(), parameterConverter, postInvoke)
                 : this;
     }
 }

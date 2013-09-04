@@ -52,7 +52,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
         for (int i = 0; i < parameterTypes.length; ++i) {
             converted[i] = loadAndConvertParameter(builder, mv, localVariableAllocator, parameters[i], parameterTypes[i]);
 
-            Class javaParameterType = parameterTypes[i].effectiveJavaType();
+            Class javaParameterType = parameterTypes[i].nativeJavaType();
             ToNativeOp op = ToNativeOp.get(parameterTypes[i]);
             if (op != null && op.isPrimitive()) {
                 op.emitPrimitive(mv, getInvokerType(), parameterTypes[i].getNativeType());
@@ -61,7 +61,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
                 pointerCount = emitDirectCheck(mv, javaParameterType, nativeIntType, converted[i], objCount, pointerCount);
 
             } else {
-                throw new IllegalArgumentException("unsupported parameter type " + parameterTypes[i].getDeclaredType());
+                throw new IllegalArgumentException("unsupported parameter type " + parameterTypes[i].nativeJavaType());
             }
         }
 
@@ -78,7 +78,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
         if (pointerCount > 0) mv.label(convertResult);
 
-        Class javaReturnType = resultType.effectiveJavaType();
+        Class javaReturnType = resultType.nativeJavaType();
         Class nativeReturnType = nativeIntType;
 
         // Convert the result from long/int to the correct return type
@@ -123,7 +123,7 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
             // Need to load all the converters onto the stack
             LocalVariable[] strategies = new LocalVariable[parameterTypes.length];
             for (int i = 0; i < parameterTypes.length; i++) {
-                Class javaParameterType = parameterTypes[i].effectiveJavaType();
+                Class javaParameterType = parameterTypes[i].nativeJavaType();
                 if (hasPointerParameterStrategy(parameterTypes[i])) {
                     mv.aload(converted[i]);
                     emitParameterStrategyLookup(mv, javaParameterType);
