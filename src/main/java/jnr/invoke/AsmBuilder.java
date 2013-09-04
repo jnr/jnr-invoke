@@ -19,7 +19,6 @@
 package jnr.invoke;
 
 import com.kenai.jffi.Function;
-import com.kenai.jffi.ObjectParameterInfo;
 import org.objectweb.asm.ClassVisitor;
 
 import java.lang.reflect.Modifier;
@@ -107,36 +106,13 @@ class AsmBuilder {
         return getField(functionAddresses, function.getFunctionAddress(), long.class, functionId).name;
     }
 
-    String getFromNativeConverterName(FromNativeConverter converter) {
-        return getFromNativeConverterField(converter).name;
-    }
-
-    String getToNativeConverterName(ToNativeConverter converter) {
-        return getToNativeConverterField(converter).name;
-    }
-
-    private static Class nearestClass(Object obj, Class defaultClass) {
-        return Modifier.isPublic(obj.getClass().getModifiers()) ? obj.getClass() : defaultClass;
-    }
-
-    ObjectField getToNativeConverterField(ToNativeConverter converter) {
-        return getObjectField(converter, nearestClass(converter, ToNativeConverter.class));
-    }
-
-    ObjectField getFromNativeConverterField(FromNativeConverter converter) {
-        return getObjectField(converter, nearestClass(converter, FromNativeConverter.class));
-    }
-
-    ObjectField getToNativeContextField(ToNativeContext context) {
-        return getObjectField(context, nearestClass(context, ToNativeContext.class));
-    }
-
-    ObjectField getFromNativeContextField(FromNativeContext context) {
-        return getObjectField(context, nearestClass(context, FromNativeContext.class));
-    }
-
-    String getObjectParameterInfoName(ObjectParameterInfo info) {
-        return getObjectField(info, ObjectParameterInfo.class).name;
+    private static Class publicClass(Class klass) {
+        for (Class c = klass; c != null; c = c.getSuperclass()) {
+            if (Modifier.isPublic(c.getModifiers())) {
+                return c;
+            }
+        }
+        throw new RuntimeException("no public ancestor of " + klass);
     }
 
     String getObjectFieldName(Object obj, Class klass) {
@@ -152,7 +128,7 @@ class AsmBuilder {
     }
 
     ObjectField getObjectField(Object obj) {
-        return getField(genericObjects, obj, obj.getClass(), genericObjectId);
+        return getField(genericObjects, obj, publicClass(obj.getClass()), genericObjectId);
     }
 
     public static final class ObjectField {

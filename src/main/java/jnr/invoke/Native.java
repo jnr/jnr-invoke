@@ -76,7 +76,7 @@ public final class Native {
         }
 
         // Stash a strong ref to reference to the library, so it doesn't get garbage collected.
-        builder.getObjectField(nativeAddress.getLibrary(), nativeAddress.getLibrary().getClass());
+        builder.getObjectField(nativeAddress.getLibrary());
 
         // Create the constructor to set the instance fields
         {

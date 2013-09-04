@@ -418,7 +418,7 @@ final class AsmUtil {
                 mv.checkcast(toNativeMethod.getParameterTypes()[0]);
             }
 
-            AsmBuilder.ObjectField toNativeConverterField = builder.getToNativeConverterField(parameterConverter);
+            AsmBuilder.ObjectField toNativeConverterField = builder.getObjectField(parameterConverter);
             mv.getstatic(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
             if (!toNativeMethod.getDeclaringClass().equals(toNativeConverterField.klass)) {
                 mv.checkcast(toNativeMethod.getDeclaringClass());
@@ -429,7 +429,7 @@ final class AsmUtil {
 
             // load context parameter (if there is one)
             if (toNativeType.getToNativeContext() != null) {
-                getfield(mv, builder, builder.getToNativeContextField(toNativeType.getToNativeContext()));
+                getfield(mv, builder, builder.getObjectField(toNativeType.getToNativeContext()));
             } else {
                 mv.aconst_null();
             }
@@ -455,10 +455,10 @@ final class AsmUtil {
             boxValue(builder, mv, fromNativeConverter.nativeType(), nativeClass);
 
             Method fromNativeMethod = getFromNativeMethod(fromNativeType, builder.getClassLoader());
-            getfield(mv, builder, builder.getFromNativeConverterField(fromNativeConverter));
+            getfield(mv, builder, builder.getObjectField(fromNativeConverter));
             mv.swap();
             if (fromNativeType.getFromNativeContext() != null) {
-                getfield(mv, builder, builder.getFromNativeContextField(fromNativeType.getFromNativeContext()));
+                getfield(mv, builder, builder.getObjectField(fromNativeType.getFromNativeContext()));
             } else {
                 mv.aconst_null();
             }

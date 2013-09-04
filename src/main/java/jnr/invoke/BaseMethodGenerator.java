@@ -116,7 +116,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                                LocalVariable[] parameters, LocalVariable[] converted) {
         for (int i = 0; i < converted.length; ++i) {
             if (converted[i] != null && parameterTypes[i].getToNativeConverter() instanceof ToNativeConverter.PostInvocation) {
-                AsmBuilder.ObjectField toNativeConverterField = builder.getToNativeConverterField(parameterTypes[i].getToNativeConverter());
+                AsmBuilder.ObjectField toNativeConverterField = builder.getObjectField(parameterTypes[i].getToNativeConverter());
                 mv.getstatic(builder.getClassNamePath(), toNativeConverterField.name, ci(toNativeConverterField.klass));
                 if (!ToNativeConverter.PostInvocation.class.isAssignableFrom(toNativeConverterField.klass)) {
                     mv.checkcast(ToNativeConverter.PostInvocation.class);
@@ -124,7 +124,7 @@ abstract class BaseMethodGenerator implements MethodGenerator {
                 mv.aload(parameters[i]);
                 mv.aload(converted[i]);
                 if (parameterTypes[i].getToNativeContext() != null) {
-                    getfield(mv, builder, builder.getToNativeContextField(parameterTypes[i].getToNativeContext()));
+                    getfield(mv, builder, builder.getObjectField(parameterTypes[i].getToNativeContext()));
                 } else {
                     mv.aconst_null();
                 }

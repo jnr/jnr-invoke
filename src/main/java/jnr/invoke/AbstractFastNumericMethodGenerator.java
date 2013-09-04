@@ -134,8 +134,8 @@ abstract class AbstractFastNumericMethodGenerator extends BaseMethodGenerator {
 
                     ObjectParameterInfo info = ObjectParameterInfo.create(i, parameterTypes[i].getDataDirection().getArrayFlags());
 
-                    mv.getstatic(builder.getClassNamePath(), builder.getObjectParameterInfoName(info),
-                            ci(ObjectParameterInfo.class));
+                    mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(info),
+                            ci(builder.getObjectField(info).klass));
                 }
             }
             mv.invokevirtual(p(Invoker.class),
