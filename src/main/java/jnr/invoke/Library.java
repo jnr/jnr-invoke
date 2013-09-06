@@ -39,12 +39,22 @@ public final class Library {
         this.jffiLibrary = jffiLibrary;
     }
 
-    public final Symbol findSymbol(String name) {
+    public final Function getFunction(String name) {
         long address = jffiLibrary.getSymbolAddress(name);
         if (address != 0L) {
-            return new Symbol(this, address);
+            return new CodeAddress(this, address);
         }
 
-        return null;
+        throw new UnsatisfiedLinkError("no such function: " + name);
+    }
+
+
+    private static final class CodeAddress extends Function {
+        private final Library library;
+
+        CodeAddress(Library library, long address) {
+            super(address);
+            this.library = library;
+        }
     }
 }

@@ -18,7 +18,10 @@
 
 package jnr.invoke;
 
-import com.kenai.jffi.*;
+import com.kenai.jffi.Function;
+import com.kenai.jffi.Internals;
+import com.kenai.jffi.PageManager;
+import com.kenai.jffi.Platform;
 import jnr.x86asm.Assembler;
 import jnr.x86asm.CPU;
 

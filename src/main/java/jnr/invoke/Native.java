@@ -18,7 +18,6 @@
 
 package jnr.invoke;
 
-import com.kenai.jffi.Function;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -42,7 +41,7 @@ public final class Native {
     private Native() {
     }
 
-    public static MethodHandle getMethodHandle(Symbol nativeAddress, CallContext context) {
+    public static MethodHandle getMethodHandle(CallContext context, Function nativeAddress) {
         AsmClassLoader classLoader = new AsmClassLoader(Native.class.getClassLoader());
         StubCompiler compiler = StubCompiler.newCompiler();
         final MethodGenerator[] generators = {
@@ -60,7 +59,7 @@ public final class Native {
         AsmBuilder builder = new AsmBuilder(p(Native.class) + "$jnr$ffi$" + nextClassID.getAndIncrement(), cv, classLoader);
 
         cv.visit(V1_7, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(java.lang.Object.class), new String[0]);
-        Function jffiFunction = new Function(nativeAddress.address(), context.getNativeCallContext());
+        com.kenai.jffi.Function jffiFunction = new com.kenai.jffi.Function(nativeAddress.address(), context.getNativeCallContext());
         ResultType resultType = context.getResultType().asPrimitiveType();
         ParameterType[] parameterTypes = new ParameterType[context.getParameterCount()];
         for (int i = 0; i < parameterTypes.length; i++) {
@@ -76,7 +75,7 @@ public final class Native {
         }
 
         // Stash a strong ref to reference to the library, so it doesn't get garbage collected.
-        builder.getObjectField(nativeAddress.getLibrary());
+        builder.getObjectField(nativeAddress);
 
         // Create the constructor to set the instance fields
         {

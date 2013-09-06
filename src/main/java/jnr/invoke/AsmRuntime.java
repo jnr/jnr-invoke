@@ -19,11 +19,11 @@
 package jnr.invoke;
 
 import com.kenai.jffi.CallContext;
-import com.kenai.jffi.*;
+import com.kenai.jffi.HeapInvocationBuffer;
+import com.kenai.jffi.MemoryIO;
 
 import java.nio.*;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,7 +55,7 @@ public final class AsmRuntime {
         return new UnsatisfiedLinkError(msg);
     }
 
-    public static HeapInvocationBuffer newHeapInvocationBuffer(Function function) {
+    public static HeapInvocationBuffer newHeapInvocationBuffer(com.kenai.jffi.Function function) {
         return new HeapInvocationBuffer(function);
     }
 
