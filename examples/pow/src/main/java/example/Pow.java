@@ -18,7 +18,7 @@ public class Pow {
 
         Library libm = Library.open(Platform.getPlatform().mapLibraryName("m"), Library.LAZY | Library.LOCAL);
 
-        MethodHandle mh = Native.getMethodHandle(libm.findSymbol("pow"), callContext);
+        MethodHandle mh = Native.getMethodHandle(callContext, libm.getFunction("pow"));
         System.out.println("pow = " + (Double) mh.invokeExact((Double) 2.0d, 3.0d));
     }
 }
