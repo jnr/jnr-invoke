@@ -1,9 +1,10 @@
 package jnr.invoke;
 
-public class Function {
-    private final long address;
+public class CodeAddress {
 
-    public Function(long address) {
+    protected final long address;
+
+    public CodeAddress(long address) {
         this.address = address;
     }
 

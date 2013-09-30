@@ -84,10 +84,10 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
     }
 
     @Override
-    void attach(Class clazz) {
+    Object attach(Class clazz) {
 
         if (stubs.isEmpty()) {
-            return;
+            return new Object();
         }
 
         long codeSize = 0;
@@ -146,6 +146,8 @@ abstract class AbstractX86StubCompiler extends StubCompiler {
 
         NativeMethods.register(clazz, methods);
         StaticDataHolder.PAGES.put(clazz, page);
+
+        return page;
     }
 
     static int align(int offset, int align) {

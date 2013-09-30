@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2010 Wayne Meissner
+ * Copyright (C) 2008-2013 Wayne Meissner
  *
  * This file is part of the JNR project.
  *
@@ -27,86 +27,10 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 
 import static jnr.invoke.Util.sizeof;
+import static jnr.invoke.Native.LOOKUP;
 
 final class NumberUtil {
     private NumberUtil() {}
-    private static final Map<Class, MethodHandle> unboxingHandles;
-    private static final Map<Class, MethodHandle> boxingHandles;
-    static {
-        Class[] primitiveClasses = new Class[] {
-            byte.class, char.class, short.class, int.class, long.class, float.class, double.class, boolean.class
-        };
-
-        Class[] boxedClasses = new Class[] {
-            Byte.class, Character.class, Short.class, Integer.class, Long.class, Float.class, Double.class, Boolean.class
-        };
-
-        MethodHandles.Lookup lookup = MethodHandles.lookup();
-        Map<Class, MethodHandle> p2b = new IdentityHashMap<>();
-        Map<Class, MethodHandle> b2p = new IdentityHashMap<>();
-
-        for (int i = 0; i < primitiveClasses.length; i++) {
-            try {
-                p2b.put(primitiveClasses[i], lookup.findStatic(boxedClasses[i], "valueOf",
-                    MethodType.methodType(boxedClasses[i], primitiveClasses[i])));
-                b2p.put(boxedClasses[i], lookup.findVirtual(boxedClasses[i], primitiveClasses[i].getName() + "Value",
-                    MethodType.methodType(primitiveClasses[i])));
-            } catch (NoSuchMethodException | IllegalAccessException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-        unboxingHandles = Collections.unmodifiableMap(b2p);
-        boxingHandles = Collections.unmodifiableMap(p2b);
-    }
-
-    static MethodHandle getUnboxingHandle(Class boxedClass) {
-        MethodHandle mh = unboxingHandles.get(boxedClass);
-        if (mh == null) throw new IllegalArgumentException("unsupported boxed class " + boxedClass.getName());
-        return mh;
-    }
-
-    static MethodHandle getBoxingHandle(Class primitiveClass) {
-        MethodHandle mh = boxingHandles.get(primitiveClass);
-        if (mh == null) throw new IllegalArgumentException("unsupported primitive class " + primitiveClass.getName());
-        return mh;
-    }
-
-    static Class getBoxedClass(Class c) {
-        if (!c.isPrimitive()) {
-            return c;
-        }
-
-        if (void.class == c) {
-            return Void.class;
-
-        } else if (byte.class == c) {
-            return Byte.class;
-        
-        } else if (char.class == c) {
-            return Character.class;
-
-        } else if (short.class == c) {
-            return Short.class;
-
-        } else if (int.class == c) {
-            return Integer.class;
-
-        } else if (long.class == c) {
-            return Long.class;
-
-        } else if (float.class == c) {
-            return Float.class;
-
-        } else if (double.class == c) {
-            return Double.class;
-
-        } else if (boolean.class == c) {
-            return Boolean.class;
-
-        } else {
-            throw new IllegalArgumentException("unknown primitive class");
-        }
-    }
 
     public static boolean isPrimitiveInt(Class c) {
         return byte.class == c || char.class == c || short.class == c || int.class == c || boolean.class == c;
@@ -249,4 +173,73 @@ final class NumberUtil {
         }
     }
 
+    static MethodHandle getParameterConversionHandle(NativeType nativeType, Class from, Class to) {
+        try {
+            switch (nativeType) {
+                case FLOAT:
+                    return LOOKUP.findStatic(Float.class, "floatToRawIntBits", MethodType.methodType(int.class, float.class))
+                            .asType(MethodType.methodType(to, from));
+
+                case DOUBLE:
+                    return LOOKUP.findStatic(Double.class, "doubleToRawLongBits", MethodType.methodType(long.class, double.class))
+                            .asType(MethodType.methodType(to, from));
+
+                default:
+                    return getIntegerConversionHandle(nativeType, from, to);
+            }
+
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    static MethodHandle getResultConversionHandle(NativeType nativeType, Class from, Class to) {
+        try {
+            switch (nativeType) {
+                case FLOAT:
+                    return MethodHandles.explicitCastArguments(LOOKUP.findStatic(Float.class, "intBitsToFloat", MethodType.methodType(float.class, int.class)),
+                            MethodType.methodType(to, from));
+
+                case DOUBLE:
+                    return LOOKUP.findStatic(Double.class, "longBitsToDouble", MethodType.methodType(double.class, long.class))
+                            .asType(MethodType.methodType(to, from));
+
+                case VOID:
+                    return null;
+
+                default:
+                    return getIntegerConversionHandle(nativeType, from, to);
+            }
+
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    static MethodHandle getIntegerConversionHandle(NativeType nativeType, Class from, Class to) throws NoSuchMethodException, IllegalAccessException {
+        switch (nativeType) {
+            case SCHAR:
+            case UCHAR:
+            case SSHORT:
+            case USHORT:
+            case SINT:
+            case UINT:
+            case SLONG:
+            case ULONG:
+            case SLONG_LONG:
+            case ULONG_LONG:
+            case POINTER:
+                if (nativeType.size() <= 4) {
+                    Class nativeIntType = long.class == to ? long.class : int.class;
+                    String conversionHelper = (nativeType.isUnsigned() ? "u" : "s") + Integer.toString(nativeType.size());
+                    MethodHandle mh = LOOKUP.findStatic(AsmRuntime.class, conversionHelper, MethodType.methodType(nativeIntType, nativeIntType));
+                    return MethodHandles.explicitCastArguments(mh, MethodType.methodType(to, from));
+                }
+
+                return null;
+
+            default:
+                return null;
+        }
+    }
 }

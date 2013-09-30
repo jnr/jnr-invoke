@@ -38,6 +38,7 @@ public final class AsmRuntime {
     public static Map<String, Object> getStaticClassData(String classID) {
         Map<String, Object> m = staticClassDataMap.get(classID);
         if (m != null) {
+            staticClassDataMap.remove(classID);
             return m;
         }
         return Collections.emptyMap();
@@ -73,5 +74,53 @@ public final class AsmRuntime {
 
     public static int intValue(Buffer ptr) {
         return ptr != null && ptr.isDirect()  ? (int) MemoryIO.getInstance().getDirectBufferAddress(ptr) : 0;
+    }
+
+    public static int s8(int v) {
+        return (byte) v;
+    }
+
+    public static long s8(long v) {
+        return (byte) v;
+    }
+
+    public static int u8(int v) {
+        return v & 0xFF;
+    }
+
+    public static long u8(long v) {
+        return v & 0xFFL;
+    }
+
+    public static int s16(int v) {
+        return (short) v;
+    }
+
+    public static long s16(long v) {
+        return (short) v;
+    }
+
+    public static int u16(int v) {
+        return v & 0xFFFF;
+    }
+
+    public static long u16(long v) {
+        return v & 0xFFFFL;
+    }
+
+    public static int s32(int v) {
+        return v;
+    }
+
+    public static long s32(long v) {
+        return (int) v;
+    }
+
+    public static int u32(int v) {
+        return v;
+    }
+
+    public static long u32(long v) {
+        return v & 0xFFFFFFFFL;
     }
 }

@@ -21,33 +21,21 @@ package jnr.invoke;
 import java.lang.invoke.MethodHandle;
 
 public class ResultType extends SignatureType {
-    private final MethodHandle resultConverter;
 
     public static ResultType primitive(NativeType nativeType, Class javaType) {
-        return new ResultType(nativeType, javaType, Util.jffiType(nativeType), null);
+        return new ResultType(nativeType, javaType, nativeType.jffiType());
     }
 
     public static ResultType primitive(NativeType nativeType, Class javaType, MethodHandle resultConverter) {
-        return new ResultType(nativeType, javaType, Util.jffiType(nativeType), resultConverter);
+        return new ResultType(nativeType, javaType, nativeType.jffiType());
     }
 
 
-    ResultType(NativeType nativeType, Class javaType, com.kenai.jffi.Type jffiType, MethodHandle resultConverter) {
+    ResultType(NativeType nativeType, Class javaType, com.kenai.jffi.Type jffiType) {
         super(nativeType, javaType, jffiType);
-        this.resultConverter = resultConverter;
-    }
-
-    Class nativeJavaType() {
-        return resultConverter != null ? resultConverter.type().parameterType(0) : getDeclaredType();
-    }
-
-    MethodHandle getFromNativeConverter() {
-        return resultConverter;
     }
 
     ResultType asPrimitiveType() {
-        return !getDeclaredType().isPrimitive() && Number.class.isAssignableFrom(getDeclaredType())
-                ? new ResultType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), jffiType(), resultConverter)
-                : this;
+        return this;
     }
 }

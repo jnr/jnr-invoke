@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Wayne Meissner
+ * Copyright (C) 2009-2013 Wayne Meissner
  *
  * This file is part of jffi.
  * 
@@ -32,7 +32,10 @@
 
 package jnr.invoke;
 
-import static jnr.invoke.Util.jffiType;
+import java.lang.invoke.MethodType;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Native function call context
@@ -51,6 +54,8 @@ public final class CallContext {
     final CallingConvention callingConvention;
 
     final boolean saveErrno;
+
+    private com.kenai.jffi.CallContext jffiContext;
 
     /**
      * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
@@ -95,7 +100,7 @@ public final class CallContext {
         this(resultType, parameterTypes, convention, true);
     }
 
-    public CallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention, boolean saveErrno) {
+    private CallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention, boolean saveErrno) {
         this(resultType, parameterTypes, convention, saveErrno, false);
     }
 
@@ -148,18 +153,50 @@ public final class CallContext {
     }
 
     com.kenai.jffi.CallContext getNativeCallContext() {
+        return jffiContext != null ? jffiContext : createNativeCallContext();
+    }
+
+    private synchronized com.kenai.jffi.CallContext createNativeCallContext() {
+        if (jffiContext != null) {
+            return jffiContext;
+        }
         com.kenai.jffi.Type[] nativeParamTypes = new com.kenai.jffi.Type[parameterTypes.length];
 
         for (int i = 0; i < nativeParamTypes.length; ++i) {
-            nativeParamTypes[i] = jffiType(parameterTypes[i].getNativeType());
+            nativeParamTypes[i] = parameterTypes[i].jffiType();
         }
 
-        return com.kenai.jffi.CallContext.getCallContext(jffiType(resultType.getNativeType()),
+        return jffiContext = com.kenai.jffi.CallContext.getCallContext(resultType.jffiType(),
                 nativeParamTypes, jffiConvention(callingConvention), saveErrno);
     }
 
+    MethodType methodType() {
+        Class[] ptypes = new Class[parameterTypes.length];
+        for (int i = 0; i < ptypes.length; i++) {
+            ptypes[i] = parameterTypes[i].javaType();
+        }
 
-    public static final com.kenai.jffi.CallingConvention jffiConvention(CallingConvention callingConvention) {
+        return MethodType.methodType(resultType.javaType(), ptypes);
+    }
+
+    ParameterType[] parameterTypeArray() {
+        return parameterTypes.clone();
+    }
+
+    List<ParameterType> parameterTypeList() {
+        return Collections.unmodifiableList(Arrays.asList(parameterTypes));
+    }
+
+    CallContext asPrimitiveContext() {
+        ParameterType[] primitiveParameterTypes = new ParameterType[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            primitiveParameterTypes[i] = parameterTypes[i].asPrimitiveType();
+        }
+
+        return CallContext.getCallContext(resultType.asPrimitiveType(), primitiveParameterTypes, callingConvention, saveErrno);
+    }
+
+    public static com.kenai.jffi.CallingConvention jffiConvention(CallingConvention callingConvention) {
         return callingConvention == CallingConvention.DEFAULT ? com.kenai.jffi.CallingConvention.DEFAULT : com.kenai.jffi.CallingConvention.STDCALL;
     }
 }

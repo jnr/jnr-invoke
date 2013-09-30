@@ -18,18 +18,14 @@
 
 package jnr.invoke;
 
-import com.kenai.jffi.Function;
 import org.objectweb.asm.ClassVisitor;
 
 import java.lang.reflect.Modifier;
-import java.util.*;
-
-import static jnr.invoke.AsmUtil.boxedType;
-import static jnr.invoke.AsmUtil.unboxNumber;
-import static jnr.invoke.CodegenUtils.ci;
-import static org.objectweb.asm.Opcodes.ACC_FINAL;
-import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
-import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -39,10 +35,7 @@ class AsmBuilder {
     private final ClassVisitor classVisitor;
     private final AsmClassLoader classLoader;
 
-    private final ObjectNameGenerator functionId = new SimpleObjectNameGenerator("functionAddress");
     private final ObjectNameGenerator genericObjectId = new InferringObjectNameGenerator();
-
-    private final Map<Long, ObjectField> functionAddresses = new HashMap<Long, ObjectField>();
     private final Map<Object, ObjectField> genericObjects = new IdentityHashMap<Object, ObjectField>();
     private final List<ObjectField> objectFields = new ArrayList<ObjectField>();
 
@@ -102,10 +95,6 @@ class AsmBuilder {
         return field != null ? field : addField(map, value, klass, objectNameGenerator);
     }
 
-    String getFunctionAddressFieldName(Function function) {
-        return getField(functionAddresses, function.getFunctionAddress(), long.class, functionId).name;
-    }
-
     private static Class publicClass(Class klass) {
         for (Class c = klass; c != null; c = c.getSuperclass()) {
             if (Modifier.isPublic(c.getModifiers())) {
@@ -147,14 +136,6 @@ class AsmBuilder {
         return objectFields.toArray(new ObjectField[objectFields.size()]);
     }
 
-    Object[] getObjectFieldValues() {
-        Object[] fieldObjects = new Object[objectFields.size()];
-        int i = 0;
-        for (ObjectField f : objectFields) {
-            fieldObjects[i++] = f.value;
-        }
-        return fieldObjects;
-    }
 
     Map<String, Object> getObjectFieldMap() {
         Map<String, Object> m = new HashMap<>();
@@ -163,30 +144,5 @@ class AsmBuilder {
         }
 
         return m;
-    }
-
-    void emitStaticFieldInitialization(SkinnyMethodAdapter clinit, String classID) {
-        if (!objectFields.isEmpty()) {
-            clinit.ldc(classID);
-            clinit.invokestatic(AsmRuntime.class, "getStaticClassData", Map.class, String.class);
-            for (ObjectField f : objectFields) {
-                getClassVisitor().visitField(ACC_PRIVATE | ACC_FINAL | ACC_STATIC, f.name, ci(f.klass), null, null).visitEnd();
-                clinit.dup();
-                clinit.ldc(f.name);
-                clinit.invokeinterface(Map.class, "get", Object.class, Object.class);
-                if (f.klass.isPrimitive()) {
-                    Class boxedType = boxedType(f.klass);
-                    clinit.checkcast(boxedType);
-                    unboxNumber(clinit, boxedType, f.klass);
-                } else {
-                    clinit.checkcast(f.klass);
-                }
-                clinit.putstatic(getClassNamePath(), f.name, ci(f.klass));
-            }
-
-            clinit.pop();
-            clinit.ldc(classID);
-            clinit.invokestatic(AsmRuntime.class, "removeStaticClassData", void.class, String.class);
-        }
     }
 }

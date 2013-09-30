@@ -18,7 +18,6 @@
 
 package jnr.invoke;
 
-import com.kenai.jffi.Function;
 import jnr.x86asm.Assembler;
 import jnr.x86asm.REG;
 import jnr.x86asm.Register;
@@ -42,7 +41,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
             return false;
         }
 
-        switch (returnType.getNativeType()) {
+        switch (returnType.nativeType()) {
             case VOID:
             case SCHAR:
             case UCHAR:
@@ -68,7 +67,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         int iCount = 0;
 
         for (ParameterType t : parameterTypes) {
-            switch (t.getNativeType()) {
+            switch (t.nativeType()) {
                 case SCHAR:
                 case UCHAR:
                 case SSHORT:
@@ -107,7 +106,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
     static final Register[] dstRegisters64 = { rdi, rsi, rdx, rcx, r8, r9 };
 
     @Override
-    final void compile(Function function, String name, ResultType resultType, ParameterType[] parameterTypes,
+    final void compile(long function, String name, ResultType resultType, ParameterType[] parameterTypes,
                        Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
 
         Assembler a = new Assembler(X86_64);
@@ -115,7 +114,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         int fCount = fCount(parameterTypes);
 
         boolean canJumpToTarget = !saveErrno & iCount <= 6 & fCount <= 8;
-        switch (resultType.getNativeType()) {
+        switch (resultType.nativeType()) {
             case SINT:
             case UINT:
                 canJumpToTarget &= int.class == resultClass;
@@ -149,7 +148,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         // env and self arguments
         //
         for (int i = 0; i < Math.min(iCount, 4); i++) {
-            switch (parameterTypes[i].getNativeType()) {
+            switch (parameterTypes[i].nativeType()) {
                 case SCHAR:
                     a.movsx(dstRegisters64[i], srcRegisters8[i]);
                     break;
@@ -188,7 +187,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         // For args 5 & 6 of the function, they would have been pushed on the stack
         for (int i = 4; i < iCount; i++) {
             int disp = 8 + ((4 - i) * 8);
-            switch (parameterTypes[i].getNativeType()) {
+            switch (parameterTypes[i].nativeType()) {
                 case SCHAR:
                     a.movsx(dstRegisters64[i], byte_ptr(rsp, disp));
                     break;
@@ -227,7 +226,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         }
 
         if (canJumpToTarget) {
-            a.jmp(imm(function.getFunctionAddress()));
+            a.jmp(imm(function));
             stubs.add(new Stub(name, sig(resultClass, parameterClasses), a));
             return;
         }
@@ -243,11 +242,11 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         a.mov(rax, imm(0));
 
         // Call to the actual native function
-        a.call(imm(function.getFunctionAddress()));
+        a.call(imm(function));
 
         if (saveErrno) {
             // Save the return on the stack
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case VOID:
                     // No need to save/reload return value registers
                     break;
@@ -268,7 +267,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
             a.call(imm(errnoFunctionAddress));
 
             // Retrieve return value and put it back in the appropriate return register
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case VOID:
                     // No need to save/reload return value registers
                     break;
@@ -313,7 +312,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
 
         } else {
             // sign/zero extend the result
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case SCHAR:
                     a.movsx(rax, al);
                     break;
@@ -351,7 +350,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         int fCount = 0;
 
         for (ParameterType t : parameterTypes) {
-            switch (t.getNativeType()) {
+            switch (t.nativeType()) {
                 case FLOAT:
                 case DOUBLE:
                     ++fCount;
@@ -366,7 +365,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         int iCount = 0;
 
         for (ParameterType t : parameterTypes) {
-            switch (t.getNativeType()) {
+            switch (t.nativeType()) {
                 case SCHAR:
                 case UCHAR:
                 case SSHORT:

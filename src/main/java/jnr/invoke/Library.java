@@ -39,7 +39,7 @@ public final class Library {
         this.jffiLibrary = jffiLibrary;
     }
 
-    public final Function getFunction(String name) {
+    public final jnr.invoke.CodeAddress getFunction(String name) {
         long address = jffiLibrary.getSymbolAddress(name);
         if (address != 0L) {
             return new CodeAddress(this, address);
@@ -49,7 +49,7 @@ public final class Library {
     }
 
 
-    private static final class CodeAddress extends Function {
+    private static final class CodeAddress extends jnr.invoke.CodeAddress {
         private final Library library;
 
         CodeAddress(Library library, long address) {

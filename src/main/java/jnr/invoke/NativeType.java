@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010 Wayne Meissner
+ * Copyright (C) 2009-2013 Wayne Meissner
  *
  * This file is part of the JNR project.
  *
@@ -17,8 +17,6 @@
  */
 
 package jnr.invoke;
-
-import static jnr.invoke.Util.jffiType;
 
 /**
  * NativeType defines the primitive types supported internally.
@@ -68,7 +66,73 @@ public enum NativeType {
     /** Native memory address.  Equivalent to a C void* or char* pointer type.  Can be either 4 or 8 bytes in size, depending on the platform. */
     POINTER;
 
+    private com.kenai.jffi.Type jffiType;
+
     int size() {
-        return jffiType(this).size();
+        return jffiType().size();
+    }
+
+    int alignment() {
+        return jffiType().alignment();
+    }
+
+    boolean isUnsigned() {
+        return name().charAt(0) == 'U' || this == POINTER;
+    }
+
+    com.kenai.jffi.Type jffiType() {
+        return jffiType != null ? jffiType : resolveType();
+    }
+
+    private synchronized com.kenai.jffi.Type resolveType() {
+        return jffiType != null ? jffiType : (jffiType = jffiType(this));
+    }
+
+    private static com.kenai.jffi.Type jffiType(NativeType nativeType) {
+        switch (nativeType) {
+            case SCHAR:
+                return com.kenai.jffi.Type.SCHAR;
+
+            case UCHAR:
+                return com.kenai.jffi.Type.UCHAR;
+
+            case SSHORT:
+                return com.kenai.jffi.Type.SSHORT;
+
+            case USHORT:
+                return com.kenai.jffi.Type.USHORT;
+
+            case SINT:
+                return com.kenai.jffi.Type.SINT;
+
+            case UINT:
+                return com.kenai.jffi.Type.UINT;
+
+            case SLONG:
+                return com.kenai.jffi.Type.SLONG;
+
+            case ULONG:
+                return com.kenai.jffi.Type.ULONG;
+
+            case SLONG_LONG:
+                return com.kenai.jffi.Type.SLONG_LONG;
+
+            case ULONG_LONG:
+                return com.kenai.jffi.Type.ULONG_LONG;
+
+            case FLOAT:
+                return com.kenai.jffi.Type.FLOAT;
+            case DOUBLE:
+                return com.kenai.jffi.Type.DOUBLE;
+
+            case POINTER:
+                return com.kenai.jffi.Type.POINTER;
+
+            case VOID:
+                return com.kenai.jffi.Type.VOID;
+
+            default:
+                throw new UnsupportedOperationException("Cannot resolve type " + nativeType);
+        }
     }
 }

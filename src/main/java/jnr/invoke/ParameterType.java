@@ -19,64 +19,44 @@
 package jnr.invoke;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 
 public final class ParameterType extends SignatureType {
     private final DataDirection dataDirection;
-    private final MethodHandle parameterConverter;
-    private final MethodHandle postInvoke;
+    private final MethodHandle lookupObjectStrategy;
+
+    private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection) {
+        this(nativeType, javaType, dataDirection, nativeType.jffiType());
+    }
 
     private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection, com.kenai.jffi.Type jffiType) {
-        this(nativeType, javaType, dataDirection, jffiType, null, null);
+        this(nativeType, javaType, dataDirection, jffiType, null);
     }
 
     private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection, com.kenai.jffi.Type jffiType,
-                          MethodHandle parameterConverter, MethodHandle postInvoke) {
+                          MethodHandle lookupObjectStrategy) {
         super(nativeType, javaType, jffiType);
         this.dataDirection = dataDirection;
-        this.parameterConverter = parameterConverter;
-        this.postInvoke = postInvoke != null
-                ? MethodHandles.catchException(postInvoke, Throwable.class, MethodHandles.constant(postInvoke.type().returnType(), null))
-                : null;
+        this.lookupObjectStrategy = lookupObjectStrategy;
     }
 
 
     public static ParameterType primitive(NativeType nativeType, Class javaType) {
-        return new ParameterType(nativeType, javaType, DataDirection.INOUT, Util.jffiType(nativeType));
+        return new ParameterType(nativeType, javaType, DataDirection.INOUT);
     }
 
-    public static ParameterType primitive(NativeType nativeType, Class javaType, MethodHandle parameterConverter, MethodHandle postInvoke) {
-        return new ParameterType(nativeType, javaType, DataDirection.INOUT, Util.jffiType(nativeType), parameterConverter, postInvoke);
-    }
-
-    static ParameterType object(NativeType nativeType, Class javaType, DataDirection dataDirection,
-                                ObjectParameterStrategyLookup stategyLookup) {
-        return new ParameterType(nativeType, javaType, dataDirection, Util.jffiType(nativeType));
-    }
-
-    public static interface ObjectParameterStrategyLookup {
-        public ObjectParameterStrategy lookupStrategy(Object parameter);
+    static ParameterType object(Class javaType, DataDirection dataDirection, MethodHandle lookupObjectStrategy) {
+        return new ParameterType(NativeType.POINTER, javaType, dataDirection, NativeType.POINTER.jffiType(), lookupObjectStrategy);
     }
 
     DataDirection getDataDirection() {
         return dataDirection;
     }
 
-    MethodHandle getPostInvoke() {
-        return postInvoke;
-    }
-
-    MethodHandle getToNativeConverter() {
-        return parameterConverter;
-    }
-
-    Class nativeJavaType() {
-        return parameterConverter != null ? parameterConverter.type().returnType() : getDeclaredType();
+    public MethodHandle getObjectStrategyHandle() {
+        return lookupObjectStrategy;
     }
 
     ParameterType asPrimitiveType() {
-        return !getDeclaredType().isPrimitive() && Number.class.isAssignableFrom(getDeclaredType())
-                ? new ParameterType(getNativeType(), AsmUtil.unboxedType(getDeclaredType()), getDataDirection(), jffiType(), parameterConverter, postInvoke)
-                : this;
+        return this;
     }
 }

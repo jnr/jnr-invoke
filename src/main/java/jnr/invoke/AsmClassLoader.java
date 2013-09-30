@@ -18,6 +18,11 @@
 
 package jnr.invoke;
 
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -28,8 +33,14 @@ final class AsmClassLoader extends ClassLoader {
         super(parent);
     }
 
-
     public Class defineClass(String name, byte[] b) {
+        return defineClass(name, b, null);
+    }
+
+    public Class defineClass(String name, byte[] b, Writer debug) {
+        if (debug != null) {
+            new ClassReader(b).accept(AsmUtil.newTraceClassVisitor(new PrintWriter(debug)), 0);
+        }
         Class klass = defineClass(name, b, 0, b.length);
         definedClasses.putIfAbsent(name, klass);
         resolveClass(klass);

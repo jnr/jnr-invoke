@@ -56,10 +56,10 @@ abstract class StubCompiler {
 
     abstract boolean canCompile(ResultType returnType, ParameterType[] parameterTypes, CallingConvention convention);
 
-    abstract void compile(Function function, String name, ResultType returnType, ParameterType[] parameterTypes,
+    abstract void compile(long function, String name, ResultType returnType, ParameterType[] parameterTypes,
                           Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno);
 
-    abstract void attach(Class clazz);
+    abstract Object attach(Class clazz);
 
     static final class DummyStubCompiler extends StubCompiler {
 
@@ -68,14 +68,13 @@ abstract class StubCompiler {
         }
 
         @Override
-        void compile(Function function, String name, ResultType returnType, ParameterType[] parameterTypes,
-                     Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
+        void compile(long function, String name, ResultType returnType, ParameterType[] parameterTypes, Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 
         @Override
-        void attach(Class clazz) {
-            // do nothing
+        Object attach(Class clazz) {
+            return new Object();
         }
 
     }

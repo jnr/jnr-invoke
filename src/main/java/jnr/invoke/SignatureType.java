@@ -22,36 +22,31 @@ public abstract class SignatureType {
     private final NativeType nativeType;
     private final Class javaType;
     protected final com.kenai.jffi.Type jffiType;
-    protected final int size;
-    protected final int alignment;
+
 
     SignatureType(NativeType nativeType, Class javaType, com.kenai.jffi.Type jffiType) {
         this.nativeType = nativeType;
         this.javaType = javaType;
         this.jffiType = jffiType;
-        this.size = jffiType.size();
-        this.alignment = jffiType.alignment();
     }
 
     public int size() {
-        return size;
+        return jffiType().size();
     }
 
     public int alignment() {
-        return alignment;
+        return jffiType().alignment();
     }
 
-    public NativeType getNativeType() {
+    public NativeType nativeType() {
         return nativeType;
     }
 
-    public Class getDeclaredType() {
+    public Class javaType() {
         return javaType;
     }
 
     com.kenai.jffi.Type jffiType() {
         return jffiType;
     }
-
-
 }

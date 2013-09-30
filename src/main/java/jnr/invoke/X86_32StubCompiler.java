@@ -18,7 +18,6 @@
 
 package jnr.invoke;
 
-import com.kenai.jffi.Function;
 import jnr.x86asm.Assembler;
 import jnr.x86asm.Mem;
 import jnr.x86asm.Register;
@@ -37,7 +36,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
     boolean canCompile(ResultType returnType, ParameterType[] parameterTypes, CallingConvention convention) {
 
-        switch (returnType.getNativeType()) {
+        switch (returnType.nativeType()) {
             case VOID:
             case SCHAR:
             case UCHAR:
@@ -67,7 +66,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
         int iCount = 0;
 
         for (ParameterType t : parameterTypes) {
-            switch (t.getNativeType()) {
+            switch (t.nativeType()) {
                 case SCHAR:
                 case UCHAR:
                 case SSHORT:
@@ -99,7 +98,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
 
     @Override
-    void compile(Function function, String name, ResultType resultType, ParameterType[] parameterTypes, Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
+    void compile(long function, String name, ResultType resultType, ParameterType[] parameterTypes, Class resultClass, Class[] parameterClasses, CallingConvention convention, boolean saveErrno) {
 
         int psize = 0;
         for (ParameterType t : parameterTypes) {
@@ -129,15 +128,15 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
             int dstParameterSize = parameterSize(parameterTypes[i]);
             int disp = stackadj + 4 + 8 + srcoff;
 
-            switch (parameterTypes[i].getNativeType()) {
+            switch (parameterTypes[i].nativeType()) {
                 case SCHAR:
                 case SSHORT:
-                    a.movsx(eax, ptr(esp, disp, parameterTypes[i].getNativeType()));
+                    a.movsx(eax, ptr(esp, disp, parameterTypes[i].nativeType()));
                     break;
 
                 case UCHAR:
                 case USHORT:
-                    a.movzx(eax, ptr(esp, disp, parameterTypes[i].getNativeType()));
+                    a.movzx(eax, ptr(esp, disp, parameterTypes[i].nativeType()));
                     break;
 
                 default:
@@ -147,11 +146,11 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
             a.mov(dword_ptr(esp, dstoff), eax);
 
             if (dstParameterSize > 4) {
-                if (parameterTypes[i].getNativeType() == NativeType.SLONG_LONG && long.class != parameterClasses[i]) {
+                if (parameterTypes[i].nativeType() == NativeType.SLONG_LONG && long.class != parameterClasses[i]) {
                     // sign extend from int.class -> long long
                     a.sar(eax, imm(31));
 
-                } else if (parameterTypes[i].getNativeType() == NativeType.ULONG_LONG && long.class != parameterClasses[i]) {
+                } else if (parameterTypes[i].nativeType() == NativeType.ULONG_LONG && long.class != parameterClasses[i]) {
                     // zero extend from int.class -> unsigned long long
                     a.mov(dword_ptr(esp, dstoff + 4), imm(0));
 
@@ -167,11 +166,11 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
 
         // Call to the actual native function
-        a.call(imm(function.getFunctionAddress() & 0xffffffffL));
+        a.call(imm(function & 0xffffffffL));
         
         if (saveErrno) {
             int save = 0;
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case FLOAT:
                     a.fstp(dword_ptr(esp, save));
                     break;
@@ -198,7 +197,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
             a.call(imm(errnoFunctionAddress & 0xffffffffL));
 
             // Retrieve return value and put it back in the appropriate return register
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case FLOAT:
                     a.fld(dword_ptr(esp, save));
                     break;
@@ -239,7 +238,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
         } else {
 
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case SCHAR:
                     a.movsx(eax, al);
                     break;
@@ -260,7 +259,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
         if (long.class == resultClass) {
             // sign or zero extend the result to 64 bits
-            switch (resultType.getNativeType()) {
+            switch (resultType.nativeType()) {
                 case SCHAR:
                 case SSHORT:
                 case SINT:
@@ -288,7 +287,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
     }
 
     static int parameterSize(ParameterType parameterType) {
-        switch (parameterType.getNativeType()) {
+        switch (parameterType.nativeType()) {
             case SCHAR:
             case UCHAR:
             case SSHORT:
@@ -323,7 +322,7 @@ final class X86_32StubCompiler extends AbstractX86StubCompiler {
 
 
     static int resultSize(ResultType resultType) {
-        switch (resultType.getNativeType()) {
+        switch (resultType.nativeType()) {
             case SCHAR:
             case UCHAR:
             case SSHORT:

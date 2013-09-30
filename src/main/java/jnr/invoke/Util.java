@@ -29,52 +29,17 @@ final class Util {
         }
     }
 
-    static com.kenai.jffi.Type jffiType(NativeType nativeType) {
-        switch (nativeType) {
-            case SCHAR:
-                return com.kenai.jffi.Type.SCHAR;
-
-            case UCHAR:
-                return com.kenai.jffi.Type.UCHAR;
-
-            case SSHORT:
-                return com.kenai.jffi.Type.SSHORT;
-
-            case USHORT:
-                return com.kenai.jffi.Type.USHORT;
-
-            case SINT:
-                return com.kenai.jffi.Type.SINT;
-
-            case UINT:
-                return com.kenai.jffi.Type.UINT;
-
-            case SLONG:
-                return com.kenai.jffi.Type.SLONG;
-
-            case ULONG:
-                return com.kenai.jffi.Type.ULONG;
-
-            case SLONG_LONG:
-                return com.kenai.jffi.Type.SLONG_LONG;
-
-            case ULONG_LONG:
-                return com.kenai.jffi.Type.ULONG_LONG;
-
-            case FLOAT:
-                return com.kenai.jffi.Type.FLOAT;
-            case DOUBLE:
-                return com.kenai.jffi.Type.DOUBLE;
-
-            case POINTER:
-                return com.kenai.jffi.Type.POINTER;
-
-            default:
-                throw new UnsupportedOperationException("Cannot resolve type " + nativeType);
-        }
+    static int sizeof(NativeType nativeType) {
+        return nativeType.size();
     }
 
-    static int sizeof(NativeType nativeType) {
-        return jffiType(nativeType).size();
+    static Class[] javaTypeArray(SignatureType[] types) {
+        Class[] javaTypes = new Class[types.length];
+
+        for (int i = 0; i < types.length; ++i) {
+            javaTypes[i] = types[i].javaType();
+        }
+
+        return javaTypes;
     }
 }
