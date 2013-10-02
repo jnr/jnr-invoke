@@ -44,7 +44,15 @@ public final class ParameterType extends SignatureType {
         return new ParameterType(nativeType, javaType, DataDirection.INOUT);
     }
 
-    static ParameterType object(Class javaType, DataDirection dataDirection, MethodHandle lookupObjectStrategy) {
+    public static ParameterType array(Class javaType, DataDirection dataDirection) {
+        return object(javaType, dataDirection, PrimitiveArrayParameterStrategy.getStrategyHandle(javaType));
+    }
+
+    public static ParameterType buffer(Class<? extends java.nio.Buffer> bufferClass, DataDirection dataDirection) {
+        return object(bufferClass, dataDirection, BufferParameterStrategy.getStrategyHandle(bufferClass));
+    }
+
+    public static ParameterType object(Class javaType, DataDirection dataDirection, MethodHandle lookupObjectStrategy) {
         return new ParameterType(NativeType.POINTER, javaType, dataDirection, NativeType.POINTER.jffiType(), lookupObjectStrategy);
     }
 

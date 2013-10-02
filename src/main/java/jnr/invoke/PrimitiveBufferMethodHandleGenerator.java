@@ -21,6 +21,7 @@ package jnr.invoke;
 import com.kenai.jffi.CallContext;
 import com.kenai.jffi.HeapInvocationBuffer;
 import com.kenai.jffi.Invoker;
+import com.kenai.jffi.ObjectParameterInfo;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 
@@ -79,7 +80,7 @@ final class PrimitiveBufferMethodHandleGenerator implements MethodHandleGenerato
 
     public boolean isSupported(ResultType resultType, Collection<ParameterType> parameterTypes, CallingConvention callingConvention) {
         for (ParameterType parameterType : parameterTypes) {
-            if (!parameterType.javaType().isPrimitive()) {
+            if (!parameterType.javaType().isPrimitive() && parameterType.getObjectStrategyHandle() == null) {
                 return false;
             }
         }
@@ -117,8 +118,21 @@ final class PrimitiveBufferMethodHandleGenerator implements MethodHandleGenerato
             mv.dup(); // HeapInvocationBuffer
             load(mv, parameterTypes[i].javaType(), parameters[i]);
 
-            convertPrimitive(mv, parameterTypes[i].javaType(), marshalOp.getPrimitiveClass(), parameterTypes[i].nativeType());
-            mv.invokevirtual(HeapInvocationBuffer.class, marshalOp.getMethodName(), void.class, marshalOp.getPrimitiveClass());
+            if (parameterTypes[i].getObjectStrategyHandle() != null) {
+
+                mv.getstatic(builder.getClassNamePath(), builder.getObjectFieldName(parameterTypes[i].getObjectStrategyHandle()), ci(MethodHandle.class));
+                load(mv, parameterTypes[i].javaType(), parameters[i]);
+                mv.invokevirtual(MethodHandle.class, "invokeExact", ObjectParameterStrategy.class, parameterTypes[i].javaType());
+                mv.getstatic(builder.getClassNamePath(),
+                        builder.getObjectFieldName(ObjectParameterInfo.create(i, parameterTypes[i].getDataDirection().getArrayFlags())),
+                        ci(ObjectParameterInfo.class));
+                mv.invokevirtual(HeapInvocationBuffer.class, "putObject", void.class, Object.class, com.kenai.jffi.ObjectParameterStrategy.class, ObjectParameterInfo.class);
+
+            } else {
+
+                convertPrimitive(mv, parameterTypes[i].javaType(), marshalOp.getPrimitiveClass(), parameterTypes[i].nativeType());
+                mv.invokevirtual(HeapInvocationBuffer.class, marshalOp.getMethodName(), void.class, marshalOp.getPrimitiveClass());
+            }
         }
 
         InvokeOp iop = getInvokeOp(resultType);

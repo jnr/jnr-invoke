@@ -123,4 +123,12 @@ public final class AsmRuntime {
     public static long u32(long v) {
         return v & 0xFFFFFFFFL;
     }
+
+    public static boolean notNull(Object object) {
+        return object != null;
+    }
+
+    public static boolean isNull(Object object) {
+        return object == null;
+    }
 }

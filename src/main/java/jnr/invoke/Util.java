@@ -18,6 +18,9 @@
 
 package jnr.invoke;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
+
 /**
  */
 final class Util {
@@ -41,5 +44,21 @@ final class Util {
         }
 
         return javaTypes;
+    }
+
+    static MethodHandle getNotNullHandle() {
+        try {
+            return Native.LOOKUP.findStatic(AsmRuntime.class, "notNull", MethodType.methodType(boolean.class, Object.class));
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static MethodHandle getIsNullHandle() {
+        try {
+            return Native.LOOKUP.findStatic(AsmRuntime.class, "isNull", MethodType.methodType(boolean.class, Object.class));
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

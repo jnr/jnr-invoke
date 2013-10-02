@@ -18,13 +18,32 @@
 
 package jnr.invoke;
 
+import com.kenai.jffi.ObjectParameterType;
+
 abstract public class ObjectParameterStrategy extends com.kenai.jffi.ObjectParameterStrategy {
     protected static enum StrategyType { DIRECT, HEAP }
     protected static final StrategyType DIRECT = StrategyType.DIRECT;
     protected static final StrategyType HEAP = StrategyType.HEAP;
 
-    protected ObjectParameterStrategy(StrategyType type) {
-        super(type == DIRECT ? com.kenai.jffi.ObjectParameterStrategy.DIRECT : com.kenai.jffi.ObjectParameterStrategy.HEAP);
+    /* objectCount is accessed directly from asm code - do not change */
+    public final int objectCount;
+
+    protected ObjectParameterStrategy(StrategyType strategyType) {
+        super(jffiStrategyType(strategyType));
+        objectCount = objectCount(strategyType);
+    }
+
+    ObjectParameterStrategy(StrategyType strategyType, ObjectParameterType parameterType) {
+        super(jffiStrategyType(strategyType), parameterType);
+        objectCount = objectCount(strategyType);
+    }
+
+    private static com.kenai.jffi.ObjectParameterStrategy.StrategyType jffiStrategyType(StrategyType strategyType) {
+        return strategyType == DIRECT ? com.kenai.jffi.ObjectParameterStrategy.DIRECT : com.kenai.jffi.ObjectParameterStrategy.HEAP;
+    }
+
+    private static int objectCount(StrategyType strategyType) {
+        return strategyType == HEAP ? 1 : 0;
     }
 
     abstract public long address(Object parameter);
