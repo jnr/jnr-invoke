@@ -112,4 +112,15 @@ final class Util {
     private static MethodHandle getStrategyAddressHandle() {
         return findVirtual(com.kenai.jffi.ObjectParameterStrategy.class, "address", MethodType.methodType(long.class, Object.class));
     }
+
+    static int countObjects(ParameterType... parameterTypes) {
+        int objectCount = 0;
+        for (ParameterType p : parameterTypes) {
+            if (p.isObject()) {
+                objectCount++;
+            }
+        }
+
+        return objectCount;
+    }
 }

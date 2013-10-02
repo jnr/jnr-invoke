@@ -3,10 +3,10 @@ package jnr.invoke;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static jnr.invoke.CodegenUtils.params;
 import static jnr.invoke.Util.*;
 
 public class DirectCheckMethodHandleGenerator implements MethodHandleGenerator {
@@ -59,16 +59,7 @@ public class DirectCheckMethodHandleGenerator implements MethodHandleGenerator {
 
 
     private static MethodHandle createDirectCheckHandle(ParameterType[] parameterTypes) {
-        int objectCount = 0;
-        for (ParameterType p : parameterTypes) {
-            if (p.isObject()) {
-                objectCount++;
-            }
-        }
-
-        Class[] boolparams = new Class[objectCount];
-        Arrays.fill(boolparams, boolean.class);
-        MethodHandle isTrue = findStatic(AsmRuntime.class, "isTrue", MethodType.methodType(boolean.class, boolparams));
+        MethodHandle isTrue = findStatic(AsmRuntime.class, "isTrue", MethodType.methodType(boolean.class, params(boolean.class, countObjects(parameterTypes))));
         for (int i = 0; i < parameterTypes.length; i++) {
             if (parameterTypes[i].getDirectCheckHandle() == null) {
                 isTrue = MethodHandles.dropArguments(isTrue, i, parameterTypes[i].javaType());
