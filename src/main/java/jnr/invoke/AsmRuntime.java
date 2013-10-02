@@ -131,4 +131,32 @@ public final class AsmRuntime {
     public static boolean isNull(Object object) {
         return object == null;
     }
+
+    public static boolean isDirect(ObjectParameterStrategy strategy) {
+        return strategy.isDirect();
+    }
+
+    public static boolean isTrue(boolean p1) {
+        return p1;
+    }
+
+    public static boolean isTrue(boolean p1, boolean p2) {
+        return p1 & p2;
+    }
+
+    public static boolean isTrue(boolean p1, boolean p2, boolean p3) {
+        return p1 & p2 & p3;
+    }
+
+    public static boolean isTrue(boolean p1, boolean p2, boolean p3, boolean p4) {
+        return p1 & p2 & p3 & p4;
+    }
+
+    public static boolean isTrue(boolean p1, boolean p2, boolean p3, boolean p4, boolean p5) {
+        return p1 & p2 & p3 & p4 & p5;
+    }
+
+    public static boolean isTrue(boolean p1, boolean p2, boolean p3, boolean p4, boolean p5, boolean p6) {
+        return p1 & p2 & p3 & p4 & p5 & p5 & p6;
+    }
 }

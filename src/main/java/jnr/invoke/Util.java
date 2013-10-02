@@ -19,7 +19,12 @@
 package jnr.invoke;
 
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
 /**
  */
@@ -47,18 +52,64 @@ final class Util {
     }
 
     static MethodHandle getNotNullHandle() {
+        return findStatic(AsmRuntime.class, "notNull", MethodType.methodType(boolean.class, Object.class));
+    }
+
+    static MethodHandle getIsNullHandle() {
+        return findStatic(AsmRuntime.class, "isNull", MethodType.methodType(boolean.class, Object.class));
+    }
+
+    static MethodHandle findVirtual(Class klass, String methodName, MethodType methodType) {
         try {
-            return Native.LOOKUP.findStatic(AsmRuntime.class, "notNull", MethodType.methodType(boolean.class, Object.class));
+            return Native.LOOKUP.findVirtual(klass, methodName, methodType);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    static MethodHandle getIsNullHandle() {
+    static MethodHandle findStatic(Class klass, String methodName, MethodType methodType) {
         try {
-            return Native.LOOKUP.findStatic(AsmRuntime.class, "isNull", MethodType.methodType(boolean.class, Object.class));
+            return Native.LOOKUP.findStatic(klass, methodName, methodType);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static List<ParameterType> asPrimitiveTypes(Collection<ParameterType> parameterTypes) {
+        return Arrays.asList(convertParameterTypesToPrimitive(parameterTypes));
+    }
+
+    static ParameterType[] asPrimitiveTypes(ParameterType[] parameterTypes) {
+        return convertParameterTypesToPrimitive(Arrays.asList(parameterTypes));
+    }
+
+    private static ParameterType[] convertParameterTypesToPrimitive(Collection<ParameterType> parameterTypes) {
+        ParameterType[] primitiveParameterTypes = new ParameterType[parameterTypes.size()];
+        int i = 0;
+        for (ParameterType p : parameterTypes) {
+            primitiveParameterTypes[i++] = p.asPrimitiveType();
+        }
+
+        return primitiveParameterTypes;
+    }
+
+
+    static MethodHandle getDirectCheckHandle(MethodHandle strategyLookup) {
+        return MethodHandles.filterArguments(getStrategyIsDirectHandle(), 0, strategyLookup);
+    }
+
+    static MethodHandle getDirectAddressHandle(MethodHandle strategyLookup) {
+        MethodHandle addressHandle = getStrategyAddressHandle()
+                .asType(MethodType.methodType(long.class, ObjectParameterStrategy.class, strategyLookup.type().parameterType(0)));
+        return MethodHandles.foldArguments(addressHandle, strategyLookup);
+    }
+
+    private static MethodHandle getStrategyIsDirectHandle() {
+        return findVirtual(com.kenai.jffi.ObjectParameterStrategy.class, "isDirect", MethodType.methodType(boolean.class))
+                .asType(MethodType.methodType(boolean.class, ObjectParameterStrategy.class));
+    }
+
+    private static MethodHandle getStrategyAddressHandle() {
+        return findVirtual(com.kenai.jffi.ObjectParameterStrategy.class, "address", MethodType.methodType(long.class, Object.class));
     }
 }

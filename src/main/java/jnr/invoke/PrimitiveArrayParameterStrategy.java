@@ -77,10 +77,18 @@ abstract class PrimitiveArrayParameterStrategy extends ObjectParameterStrategy {
         return 0;
     }
 
-    static MethodHandle getStrategyHandle(Class arrayType) {
+    static MethodHandle getStrategyLookupHandle(Class arrayType) {
         return MethodHandles.guardWithTest(Util.getNotNullHandle().asType(MethodType.methodType(boolean.class, arrayType)),
                 MethodHandles.dropArguments(MethodHandles.constant(ObjectParameterStrategy.class, strategyForComponentType(arrayType.getComponentType())), 0, arrayType),
                 MethodHandles.dropArguments(MethodHandles.constant(ObjectParameterStrategy.class, NullObjectParameterStrategy.NULL), 0, arrayType));
+    }
+
+    static MethodHandle getDirectCheckHandle(Class arrayType) {
+        return Util.getIsNullHandle().asType(MethodType.methodType(boolean.class, arrayType));
+    }
+
+    static MethodHandle getDirectAddressHandle(Class arrayType) {
+        return MethodHandles.dropArguments(MethodHandles.constant(long.class, (long) 0), 0, arrayType);
     }
 
     private static ObjectParameterStrategy strategyForComponentType(Class componentType) {

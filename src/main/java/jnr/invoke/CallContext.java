@@ -37,6 +37,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static jnr.invoke.Util.asPrimitiveTypes;
+
 /**
  * Native function call context
  *
@@ -188,12 +190,8 @@ public final class CallContext {
     }
 
     CallContext asPrimitiveContext() {
-        ParameterType[] primitiveParameterTypes = new ParameterType[parameterTypes.length];
-        for (int i = 0; i < parameterTypes.length; i++) {
-            primitiveParameterTypes[i] = parameterTypes[i].asPrimitiveType();
-        }
-
-        return CallContext.getCallContext(resultType.asPrimitiveType(), primitiveParameterTypes, callingConvention, saveErrno);
+        return CallContext.getCallContext(resultType.asPrimitiveType(), asPrimitiveTypes(parameterTypes),
+                callingConvention, saveErrno);
     }
 
     public static com.kenai.jffi.CallingConvention jffiConvention(CallingConvention callingConvention) {

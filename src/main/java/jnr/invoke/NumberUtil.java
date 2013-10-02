@@ -231,7 +231,7 @@ final class NumberUtil {
             case POINTER:
                 if (nativeType.size() <= 4) {
                     Class nativeIntType = long.class == to ? long.class : int.class;
-                    String conversionHelper = (nativeType.isUnsigned() ? "u" : "s") + Integer.toString(nativeType.size());
+                    String conversionHelper = (nativeType.isUnsigned() ? "u" : "s") + Integer.toString(nativeType.size() * 8);
                     MethodHandle mh = LOOKUP.findStatic(AsmRuntime.class, conversionHelper, MethodType.methodType(nativeIntType, nativeIntType));
                     return MethodHandles.explicitCastArguments(mh, MethodType.methodType(to, from));
                 }

@@ -80,7 +80,7 @@ final class DefaultMethodHandleGenerator implements MethodHandleGenerator {
 
     public boolean isSupported(ResultType resultType, Collection<ParameterType> parameterTypes, CallingConvention callingConvention) {
         for (ParameterType parameterType : parameterTypes) {
-            if (!parameterType.javaType().isPrimitive() && parameterType.getObjectStrategyHandle() == null) {
+            if (!parameterType.javaType().isPrimitive() && !parameterType.isObject()) {
                 return false;
             }
         }

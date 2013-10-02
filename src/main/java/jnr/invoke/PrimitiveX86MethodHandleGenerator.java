@@ -113,9 +113,10 @@ final class PrimitiveX86MethodHandleGenerator implements MethodHandleGenerator {
             case ULONG:
             case SLONG_LONG:
             case ULONG_LONG:
+            case POINTER:
             case FLOAT:
             case DOUBLE:
-                return true;
+                return type.javaType().isPrimitive();
 
             default:
                 return false;
@@ -124,8 +125,8 @@ final class PrimitiveX86MethodHandleGenerator implements MethodHandleGenerator {
 
 
     static boolean isSupportedResult(ResultType resultType) {
-        return isSupportedType(resultType) || void.class == resultType.javaType()
-                || resultType.nativeType() == NativeType.POINTER
+        return isSupportedType(resultType)
+                || (resultType.nativeType() == NativeType.VOID && void.class == resultType.javaType())
                 ;
     }
 

@@ -105,7 +105,8 @@ final class PrimitiveNumericMethodHandleGenerator implements MethodHandleGenerat
             case ULONG_LONG:
             case FLOAT:
             case DOUBLE:
-                return true;
+            case POINTER:
+                return type.javaType().isPrimitive();
 
             default:
                 return false;
@@ -113,18 +114,13 @@ final class PrimitiveNumericMethodHandleGenerator implements MethodHandleGenerat
     }
 
     static boolean isFastNumericResult(ResultType type) {
-        return (isNumericType(type) && type.javaType().isPrimitive())
-                || NativeType.VOID == type.nativeType()
+        return isNumericType(type)
+                || (type.nativeType() == NativeType.VOID && void.class == type.javaType())
                 ;
     }
 
     static boolean isFastNumericParameter(ParameterType parameterType) {
-        return (isNumericType(parameterType) && parameterType.javaType().isPrimitive())
-                || (parameterType.nativeType() == NativeType.POINTER && isSupportedPointerParameterType(parameterType.javaType()));
-    }
-
-    private static boolean isSupportedPointerParameterType(Class javaParameterType) {
-        return long.class == javaParameterType;
+        return isNumericType(parameterType);
     }
 
     private static Class[] getInvokerParameterClasses(int parameterCount, Class nativeIntType) {

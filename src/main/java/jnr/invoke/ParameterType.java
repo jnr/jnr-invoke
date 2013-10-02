@@ -23,20 +23,24 @@ import java.lang.invoke.MethodHandle;
 public final class ParameterType extends SignatureType {
     private final DataDirection dataDirection;
     private final MethodHandle lookupObjectStrategy;
+    private final MethodHandle directCheckHandle;
+    private final MethodHandle directAddressHandle;
 
     private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection) {
         this(nativeType, javaType, dataDirection, nativeType.jffiType());
     }
 
     private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection, com.kenai.jffi.Type jffiType) {
-        this(nativeType, javaType, dataDirection, jffiType, null);
+        this(nativeType, javaType, dataDirection, jffiType, null, null, null);
     }
 
     private ParameterType(NativeType nativeType, Class javaType, DataDirection dataDirection, com.kenai.jffi.Type jffiType,
-                          MethodHandle lookupObjectStrategy) {
+                          MethodHandle lookupObjectStrategy, MethodHandle directCheckHandle, MethodHandle directAddressHandle) {
         super(nativeType, javaType, jffiType);
         this.dataDirection = dataDirection;
         this.lookupObjectStrategy = lookupObjectStrategy;
+        this.directCheckHandle = directCheckHandle;
+        this.directAddressHandle = directAddressHandle;
     }
 
 
@@ -45,26 +49,48 @@ public final class ParameterType extends SignatureType {
     }
 
     public static ParameterType array(Class javaType, DataDirection dataDirection) {
-        return object(javaType, dataDirection, PrimitiveArrayParameterStrategy.getStrategyHandle(javaType));
+        return object(javaType, dataDirection,
+                PrimitiveArrayParameterStrategy.getStrategyLookupHandle(javaType),
+                PrimitiveArrayParameterStrategy.getDirectCheckHandle(javaType),
+                PrimitiveArrayParameterStrategy.getDirectAddressHandle(javaType));
     }
 
     public static ParameterType buffer(Class<? extends java.nio.Buffer> bufferClass, DataDirection dataDirection) {
         return object(bufferClass, dataDirection, BufferParameterStrategy.getStrategyHandle(bufferClass));
     }
 
+    public static ParameterType object(Class javaType, DataDirection dataDirection, MethodHandle lookupObjectStrategy,
+                                       MethodHandle directCheckHandle, MethodHandle directAddressHandle) {
+        return new ParameterType(NativeType.POINTER, javaType, dataDirection, NativeType.POINTER.jffiType(),
+                lookupObjectStrategy, directCheckHandle, directAddressHandle);
+    }
+
     public static ParameterType object(Class javaType, DataDirection dataDirection, MethodHandle lookupObjectStrategy) {
-        return new ParameterType(NativeType.POINTER, javaType, dataDirection, NativeType.POINTER.jffiType(), lookupObjectStrategy);
+        return object(javaType, dataDirection, lookupObjectStrategy, Util.getDirectCheckHandle(lookupObjectStrategy),
+                Util.getDirectAddressHandle(lookupObjectStrategy));
     }
 
     DataDirection getDataDirection() {
         return dataDirection;
     }
 
-    public MethodHandle getObjectStrategyHandle() {
+    boolean isObject() {
+        return lookupObjectStrategy != null;
+    }
+
+    MethodHandle getObjectStrategyHandle() {
         return lookupObjectStrategy;
     }
 
+    MethodHandle getDirectCheckHandle() {
+        return directCheckHandle;
+    }
+
+    MethodHandle getDirectAddressHandle() {
+        return directAddressHandle;
+    }
+
     ParameterType asPrimitiveType() {
-        return this;
+        return lookupObjectStrategy != null ? ParameterType.primitive(NativeType.POINTER, long.class) : this;
     }
 }

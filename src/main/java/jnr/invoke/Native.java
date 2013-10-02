@@ -46,6 +46,7 @@ public final class Native {
         MethodHandleGenerator[] generators = {
                 new PrimitiveX86MethodHandleGenerator(),
                 new PrimitiveNumericMethodHandleGenerator(),
+                new DirectCheckMethodHandleGenerator(),
                 new DefaultMethodHandleGenerator()
         };
 
