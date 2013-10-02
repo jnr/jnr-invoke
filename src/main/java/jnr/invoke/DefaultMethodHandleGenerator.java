@@ -43,7 +43,7 @@ import static org.objectweb.asm.Opcodes.*;
 /**
  *
  */
-final class PrimitiveBufferMethodHandleGenerator implements MethodHandleGenerator {
+final class DefaultMethodHandleGenerator implements MethodHandleGenerator {
     @Override
     public MethodHandle createBoundHandle(jnr.invoke.CallContext callContext, CodeAddress nativeAddress) {
         AsmClassLoader classLoader = new AsmClassLoader(Native.class.getClassLoader());
