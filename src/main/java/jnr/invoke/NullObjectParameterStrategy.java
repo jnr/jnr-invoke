@@ -3,10 +3,10 @@ package jnr.invoke;
 /**
  *
  */
-public final class NullObjectParameterStrategy extends ObjectParameterStrategy {
-    public static final ObjectParameterStrategy NULL = new NullObjectParameterStrategy();
+final class NullObjectParameterStrategy extends ObjectParameterStrategy {
+    static final ObjectParameterStrategy NULL = new NullObjectParameterStrategy();
 
-    public NullObjectParameterStrategy() {
+    NullObjectParameterStrategy() {
         super(DIRECT);
     }
 
