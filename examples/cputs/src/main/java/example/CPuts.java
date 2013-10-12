@@ -23,7 +23,7 @@ public class CPuts {
     public static void main(String[] args) throws Throwable {
 
         Signature arrayContext = Signature.getSignature(ResultType.primitive(NativeType.SINT, int.class),
-                new ParameterType[]{ParameterType.array(byte[].class, DataDirection.IN)}, CallingConvention.DEFAULT, true);
+                new ParameterType[]{ParameterType.array(byte[].class, DataDirection.IN)});
 
         Library libc = Library.open(Platform.getPlatform().mapLibraryName("c"), Library.LAZY | Library.LOCAL);
 
@@ -40,7 +40,7 @@ public class CPuts {
 
         // Now try it using both direct and heap ByteBuffers
         Signature bufferContext = Signature.getSignature(ResultType.primitive(NativeType.SINT, int.class),
-                new ParameterType[]{ParameterType.buffer(ByteBuffer.class, DataDirection.IN)}, CallingConvention.DEFAULT, true);
+                new ParameterType[]{ParameterType.buffer(ByteBuffer.class, DataDirection.IN)});
         MethodHandle bufferPuts = Native.getMethodHandle(bufferContext, libc.getFunction("puts"));
         bufferPuts.invoke(ByteBuffer.wrap("heap ByteBuffer output".getBytes()));
 

@@ -13,11 +13,10 @@ public class Pow {
     public static void main(String[] args) throws Throwable {
 
         Signature signature = Signature.getSignature(ResultType.primitive(NativeType.DOUBLE, double.class),
-                new ParameterType[]{
+                new ParameterType[] {
                         ParameterType.primitive(NativeType.DOUBLE, double.class),
                         ParameterType.primitive(NativeType.DOUBLE, double.class)
-                },
-                CallingConvention.DEFAULT, false);
+                });
 
         Library libm = Library.open(Platform.getPlatform().mapLibraryName("m"), Library.LAZY | Library.LOCAL);
 

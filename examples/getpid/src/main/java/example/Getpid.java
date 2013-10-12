@@ -12,8 +12,7 @@ public class Getpid {
 
     public static void main(String[] args) throws Throwable {
 
-        Signature signature = Signature.getSignature(ResultType.primitive(NativeType.ULONG, long.class),
-                new ParameterType[0], CallingConvention.DEFAULT, false);
+        Signature signature = Signature.getSignature(ResultType.primitive(NativeType.ULONG, long.class), new ParameterType[0]);
 
         Library libc = Library.open(Platform.getPlatform().mapLibraryName("c"), Library.LAZY | Library.LOCAL);
 

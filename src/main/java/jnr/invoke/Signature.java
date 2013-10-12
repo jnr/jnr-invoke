@@ -52,7 +52,7 @@ public final class Signature {
     public static final int CDECL         = 0x2;
     public static final int STDCALL       = 0x4;
     public static final int FAULT_PROTECT = 0x8;
-    public static final int DEFAULT = (SAVE_ERRNO | CDECL);
+    public static final int DEFAULT = (CDECL);
     private static final int VALID_FLAGS = (SAVE_ERRNO | CDECL | STDCALL | FAULT_PROTECT);
 
     /** The return type of this function */
@@ -64,6 +64,18 @@ public final class Signature {
     private final int flags;
 
     private com.kenai.jffi.CallContext jffiContext;
+
+    /**
+     * Returns a {@link Signature} instance.  This may return a previously cached instance that matches
+     * the signature requested, and should be used in preference to instantiating new instances.
+     *
+     * @param resultType The return type of the native function.
+     * @param parameterTypes The parameter types the function accepts.
+     * @return An instance of Signature
+     */
+    public static Signature getSignature(ResultType resultType, ParameterType[] parameterTypes) {
+        return new Signature(resultType, parameterTypes, DEFAULT);
+    }
 
     /**
      * Returns a {@link Signature} instance.  This may return a previously cached instance that matches
