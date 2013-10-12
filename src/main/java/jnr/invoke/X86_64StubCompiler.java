@@ -239,7 +239,7 @@ final class X86_64StubCompiler extends AbstractX86StubCompiler {
         a.sub(rsp, imm(space));
 
         // Clear %rax, since it is used by varargs functions to determine the number of float registers to be saved
-        a.mov(rax, imm(0));
+        a.xor_(eax, eax);
 
         // Call to the actual native function
         a.call(imm(function));
