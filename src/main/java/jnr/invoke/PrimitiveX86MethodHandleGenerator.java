@@ -54,17 +54,17 @@ final class PrimitiveX86MethodHandleGenerator implements MethodHandleGenerator {
     }
 
     @Override
-    public MethodHandle createBoundHandle(CallContext callContext, CodeAddress nativeAddress) {
+    public MethodHandle createBoundHandle(Signature signature, CodeAddress nativeAddress) {
         AsmClassLoader classLoader = new AsmClassLoader(Native.class.getClassLoader());
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         ClassVisitor cv = Native.DEBUG ? AsmUtil.newCheckClassAdapter(cw) : cw;
 
         AsmBuilder builder = new AsmBuilder(p(Native.class) + "$x86asm$" + nextClassID.getAndIncrement(), cv, classLoader);
-        ResultType resultType = callContext.getResultType().asPrimitiveType();
+        ResultType resultType = signature.getResultType().asPrimitiveType();
 
         cv.visit(V1_7, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(java.lang.Object.class), new String[0]);
 
-        compile(callContext, builder, nativeAddress.address(), STUB_NAME, resultType, callContext.parameterTypeArray());
+        compile(signature, builder, nativeAddress.address(), STUB_NAME, resultType, signature.parameterTypeArray());
 
         // Stash a strong ref to the library, so it doesn't get garbage collected.
         builder.getObjectField(nativeAddress);
@@ -83,14 +83,14 @@ final class PrimitiveX86MethodHandleGenerator implements MethodHandleGenerator {
             // Attach any native method stubs, and store a strong ref to the compiled page in a class var
             implClass.getField("pageHolder").set(implClass, compiler.attach(implClass));
 
-            return MethodHandles.lookup().findStatic(implClass, STUB_NAME, callContext.methodType());
+            return MethodHandles.lookup().findStatic(implClass, STUB_NAME, signature.methodType());
 
         } catch (Throwable ex) {
             throw new RuntimeException(ex);
         }
     }
 
-    private void compile(CallContext callContext, AsmBuilder builder, long function, String stubName, ResultType resultType, ParameterType[] parameterTypes) {
+    private void compile(Signature signature, AsmBuilder builder, long function, String stubName, ResultType resultType, ParameterType[] parameterTypes) {
         Class[] nativeParameterTypes = javaTypeArray(parameterTypes);
         Class nativeReturnType = resultType.javaType();
 
@@ -98,7 +98,7 @@ final class PrimitiveX86MethodHandleGenerator implements MethodHandleGenerator {
                 stubName, sig(nativeReturnType, nativeParameterTypes), null, null).visitEnd();
 
         compiler.compile(function, stubName, resultType, parameterTypes, nativeReturnType, nativeParameterTypes,
-                callContext.getCallingConvention(), callContext.saveErrno());
+                signature.getCallingConvention(), signature.saveErrno());
     }
 
     private static boolean isSupportedType(SignatureType type) {

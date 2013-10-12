@@ -1,7 +1,7 @@
 package example;
 
 import com.kenai.jffi.Platform;
-import jnr.invoke.CallContext;
+import jnr.invoke.Signature;
 import jnr.invoke.CallingConvention;
 import jnr.invoke.DataDirection;
 import jnr.invoke.Library;
@@ -22,8 +22,8 @@ public class CPuts {
 
     public static void main(String[] args) throws Throwable {
 
-        CallContext arrayContext = CallContext.getCallContext(ResultType.primitive(NativeType.SINT, int.class),
-                new ParameterType[] { ParameterType.array(byte[].class, DataDirection.IN) }, CallingConvention.DEFAULT, true);
+        Signature arrayContext = Signature.getSignature(ResultType.primitive(NativeType.SINT, int.class),
+                new ParameterType[]{ParameterType.array(byte[].class, DataDirection.IN)}, CallingConvention.DEFAULT, true);
 
         Library libc = Library.open(Platform.getPlatform().mapLibraryName("c"), Library.LAZY | Library.LOCAL);
 
@@ -39,8 +39,8 @@ public class CPuts {
         }
 
         // Now try it using both direct and heap ByteBuffers
-        CallContext bufferContext = CallContext.getCallContext(ResultType.primitive(NativeType.SINT, int.class),
-                new ParameterType[] { ParameterType.buffer(ByteBuffer.class, DataDirection.IN) }, CallingConvention.DEFAULT, true);
+        Signature bufferContext = Signature.getSignature(ResultType.primitive(NativeType.SINT, int.class),
+                new ParameterType[]{ParameterType.buffer(ByteBuffer.class, DataDirection.IN)}, CallingConvention.DEFAULT, true);
         MethodHandle bufferPuts = Native.getMethodHandle(bufferContext, libc.getFunction("puts"));
         bufferPuts.invoke(ByteBuffer.wrap("heap ByteBuffer output".getBytes()));
 

@@ -17,30 +17,30 @@ final class PrimitiveNumericMethodHandleGenerator implements MethodHandleGenerat
     PrimitiveNumericMethodHandleGenerator() {
     }
 
-    public MethodHandle createBoundHandle(CallContext callContext, CodeAddress function) {
+    public MethodHandle createBoundHandle(Signature signature, CodeAddress function) {
         try {
-            MethodHandle mh = MethodHandles.filterArguments(createUnBoundHandle(callContext), 0,
+            MethodHandle mh = MethodHandles.filterArguments(createUnBoundHandle(signature), 0,
                     Native.LOOKUP.findVirtual(CodeAddress.class, "address", MethodType.methodType(long.class)));
             mh = MethodHandles.insertArguments(mh, 0, function);
-            return MethodHandles.explicitCastArguments(mh, callContext.methodType());
+            return MethodHandles.explicitCastArguments(mh, signature.methodType());
 
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public MethodHandle createUnBoundHandle(CallContext callContext) {
-        MethodHandle mh = MethodHandles.insertArguments(getFastNumericHandle(callContext), 0, callContext.getNativeCallContext());
+    public MethodHandle createUnBoundHandle(Signature signature) {
+        MethodHandle mh = MethodHandles.insertArguments(getFastNumericHandle(signature), 0, signature.getNativeCallContext());
         Class nativeIntType = long.class;
-        for (int i = 0; i < callContext.getParameterCount(); i++) {
-            ParameterType parameterType = callContext.getParameterType(i);
+        for (int i = 0; i < signature.getParameterCount(); i++) {
+            ParameterType parameterType = signature.getParameterType(i);
             MethodHandle conversion = NumberUtil.getParameterConversionHandle(parameterType.nativeType(), parameterType.javaType(), nativeIntType);
             if (conversion != null) {
                 mh = MethodHandles.filterArguments(mh, i + 1, conversion);
             }
         }
 
-        MethodHandle conversion = NumberUtil.getResultConversionHandle(callContext.getResultType().nativeType(), nativeIntType, callContext.getResultType().javaType());
+        MethodHandle conversion = NumberUtil.getResultConversionHandle(signature.getResultType().nativeType(), nativeIntType, signature.getResultType().javaType());
         if (conversion != null) {
             mh = MethodHandles.filterReturnValue(mh, conversion);
         }
@@ -77,14 +77,14 @@ final class PrimitiveNumericMethodHandleGenerator implements MethodHandleGenerat
         return isFastNumericResult(resultType);
     }
 
-    private static MethodHandle getFastNumericHandle(CallContext callContext) {
-        return getPrimitiveInvokerHandle(callContext, long.class, 'N');
+    private static MethodHandle getFastNumericHandle(Signature signature) {
+        return getPrimitiveInvokerHandle(signature, long.class, 'N');
     }
 
-    private static MethodHandle getPrimitiveInvokerHandle(CallContext callContext, Class nativeIntType, char suffix) {
-        MethodType mt = MethodType.methodType(long.class, getInvokerParameterClasses(callContext.getParameterCount(), nativeIntType));
+    private static MethodHandle getPrimitiveInvokerHandle(Signature signature, Class nativeIntType, char suffix) {
+        MethodType mt = MethodType.methodType(long.class, getInvokerParameterClasses(signature.getParameterCount(), nativeIntType));
         try {
-            return Native.LOOKUP.findVirtual(com.kenai.jffi.Invoker.class, "invoke" + suffix + callContext.getParameterCount(), mt)
+            return Native.LOOKUP.findVirtual(com.kenai.jffi.Invoker.class, "invoke" + suffix + signature.getParameterCount(), mt)
                     .bindTo(com.kenai.jffi.Invoker.getInstance());
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);

@@ -15,12 +15,12 @@ Example
         public static void main(String[] args) throws Throwable {
             
             // Create a function signature for long getpid()
-            CallContext callContext = CallContext.getCallContext(ResultType.primitive(NativeType.ULONG, long.class),
-                    new ParameterType[0], CallingConvention.DEFAULT, false);
+            Signature signature = Signature.getSignature(ResultType.primitive(NativeType.ULONG, long.class),
+                    new ParameterType[0], Signature.CDECL);
                                 
             Library libc = Library.open(Platform.getPlatform().mapLibraryName("c"), Library.LAZY | Library.LOCAL);
     
-            MethodHandle mh = Native.getMethodHandle(libc.findSymbol("getpid"), callContext);
+            MethodHandle mh = Native.getMethodHandle(libc.findSymbol("getpid"), signature);
             System.out.println("pid = " + mh.invoke());
         }
     }

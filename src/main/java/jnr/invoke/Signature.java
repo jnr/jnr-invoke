@@ -46,7 +46,7 @@ import static jnr.invoke.Util.javaTypeArray;
  * This class holds all the information that JFFI needs to correctly call a
  * native function, or to implement a callback from native code to java.
  */
-public final class CallContext {
+public final class Signature {
 
     public static final int SAVE_ERRNO    = 0x1;
     public static final int CDECL         = 0x2;
@@ -66,48 +66,48 @@ public final class CallContext {
     private com.kenai.jffi.CallContext jffiContext;
 
     /**
-     * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
+     * Returns a {@link Signature} instance.  This may return a previously cached instance that matches
      * the signature requested, and should be used in preference to instantiating new instances.
      *
      * @param resultType The return type of the native function.
      * @param parameterTypes The parameter types the function accepts.
      * @param flags the flags for the call.
-     * @return An instance of CallContext
+     * @return An instance of Signature
      */
-    public static CallContext getCallContext(ResultType resultType, ParameterType[] parameterTypes, int flags) {
-        return new CallContext(resultType, parameterTypes, flags);
+    public static Signature getSignature(ResultType resultType, ParameterType[] parameterTypes, int flags) {
+        return new Signature(resultType, parameterTypes, flags);
     }
 
     /**
-     * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
+     * Returns a {@link Signature} instance.  This may return a previously cached instance that matches
      * the signature requested, and should be used in preference to instantiating new instances.
      *
      * @param resultType The return type of the native function.
      * @param parameterTypes The parameter types the function accepts.
      * @param convention The calling convention of the function.
      * @param saveErrno Indicates that the errno should be saved
-     * @return An instance of CallContext
+     * @return An instance of Signature
      */
-    public static CallContext getCallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention, boolean saveErrno) {
-        return new CallContext(resultType, parameterTypes, flags(convention) | (saveErrno ? SAVE_ERRNO : 0));
+    public static Signature getSignature(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention, boolean saveErrno) {
+        return new Signature(resultType, parameterTypes, flags(convention) | (saveErrno ? SAVE_ERRNO : 0));
     }
 
-    public static CallContext getCallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention,
-                                             boolean saveErrno, boolean faultProtect) {
-        return new CallContext(resultType, parameterTypes, flags(convention) | (saveErrno ? SAVE_ERRNO : 0) | (faultProtect ? FAULT_PROTECT : 0));
+    public static Signature getSignature(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention,
+                                         boolean saveErrno, boolean faultProtect) {
+        return new Signature(resultType, parameterTypes, flags(convention) | (saveErrno ? SAVE_ERRNO : 0) | (faultProtect ? FAULT_PROTECT : 0));
     }
 
     /**
-     * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
+     * Returns a {@link Signature} instance.  This may return a previously cached instance that matches
      * the signature requested, and should be used in preference to instantiating new instances.
      *
      * @param flags Flags.
      * @param resultType The return type of the native function.
      * @param parameterTypes The parameter types the function accepts.
-     * @return An instance of CallContext
+     * @return An instance of Signature
      */
-    public static CallContext getCallContext(int flags, ResultType resultType, ParameterType... parameterTypes) {
-        return new CallContext(resultType, parameterTypes, flags);
+    public static Signature getSignature(int flags, ResultType resultType, ParameterType... parameterTypes) {
+        return new Signature(resultType, parameterTypes, flags);
     }
 
     /**
@@ -116,7 +116,7 @@ public final class CallContext {
      * @param resultType The return type of the native function.
      * @param parameterTypes The parameter types the function accepts.
      */
-    private CallContext(ResultType resultType, ParameterType[] parameterTypes, int flags) {
+    private Signature(ResultType resultType, ParameterType[] parameterTypes, int flags) {
         this.resultType = resultType;
         this.parameterTypes = parameterTypes.clone();
         this.flags = flags & VALID_FLAGS;
@@ -188,8 +188,8 @@ public final class CallContext {
         return Collections.unmodifiableList(Arrays.asList(parameterTypes));
     }
 
-    CallContext asPrimitiveContext() {
-        return CallContext.getCallContext(flags, resultType.asPrimitiveType(), asPrimitiveTypes(parameterTypes));
+    Signature asPrimitiveContext() {
+        return Signature.getSignature(flags, resultType.asPrimitiveType(), asPrimitiveTypes(parameterTypes));
     }
 
     static com.kenai.jffi.CallingConvention jffiConvention(int flags) {

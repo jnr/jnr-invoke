@@ -16,10 +16,10 @@ public class DirectCheckMethodHandleGenerator implements MethodHandleGenerator {
     };
 
     @Override
-    public MethodHandle createBoundHandle(CallContext callContext, CodeAddress function) {
-        return MethodHandles.guardWithTest(createDirectCheckHandle(callContext.parameterTypeArray()),
-                getPrimitiveHandle(callContext, function),
-                new DefaultMethodHandleGenerator().createBoundHandle(callContext, function));
+    public MethodHandle createBoundHandle(Signature signature, CodeAddress function) {
+        return MethodHandles.guardWithTest(createDirectCheckHandle(signature.parameterTypeArray()),
+                getPrimitiveHandle(signature, function),
+                new DefaultMethodHandleGenerator().createBoundHandle(signature, function));
     }
 
 
@@ -34,23 +34,23 @@ public class DirectCheckMethodHandleGenerator implements MethodHandleGenerator {
         return isSupported && parameterTypes.size() <= 6;
     }
 
-    private MethodHandle getPrimitiveHandle(CallContext callContext, CodeAddress nativeAddress) {
-        CallContext primitiveContext = callContext.asPrimitiveContext();
+    private MethodHandle getPrimitiveHandle(Signature signature, CodeAddress nativeAddress) {
+        Signature primitiveContext = signature.asPrimitiveContext();
 
         MethodHandle primitiveHandle = createPrimitiveMethodHandle(primitiveGenerators, primitiveContext, nativeAddress);
-        for (int i = 0; i < callContext.getParameterCount(); i++) {
-            if (callContext.getParameterType(i).getDirectAddressHandle() != null) {
-                primitiveHandle = MethodHandles.filterArguments(primitiveHandle, i, callContext.getParameterType(i).getDirectAddressHandle());
+        for (int i = 0; i < signature.getParameterCount(); i++) {
+            if (signature.getParameterType(i).getDirectAddressHandle() != null) {
+                primitiveHandle = MethodHandles.filterArguments(primitiveHandle, i, signature.getParameterType(i).getDirectAddressHandle());
             }
         }
 
         return primitiveHandle;
     }
 
-    private static MethodHandle createPrimitiveMethodHandle(MethodHandleGenerator[] generators, CallContext callContext, CodeAddress nativeAddress) {
+    private static MethodHandle createPrimitiveMethodHandle(MethodHandleGenerator[] generators, Signature signature, CodeAddress nativeAddress) {
         for (MethodHandleGenerator g : generators) {
-            if (g.isSupported(callContext.getResultType(), callContext.parameterTypeList(), callContext.getCallingConvention())) {
-                return g.createBoundHandle(callContext, nativeAddress);
+            if (g.isSupported(signature.getResultType(), signature.parameterTypeList(), signature.getCallingConvention())) {
+                return g.createBoundHandle(signature, nativeAddress);
             }
         }
 

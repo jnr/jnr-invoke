@@ -32,17 +32,17 @@ public final class Native {
     private Native() {
     }
 
-    public static MethodHandle getMethodHandle(CallContext callContext, CodeAddress nativeAddress) {
+    public static MethodHandle getMethodHandle(Signature signature, CodeAddress nativeAddress) {
 
-        MethodHandle mh = getPrimitiveMethodHandle(callContext, nativeAddress);
+        MethodHandle mh = getPrimitiveMethodHandle(signature, nativeAddress);
         if (mh == null) {
-            throw new UnsupportedOperationException("cannot generate handle for " + callContext);
+            throw new UnsupportedOperationException("cannot generate handle for " + signature);
         }
 
         return mh;
     }
 
-    private static MethodHandle getPrimitiveMethodHandle(CallContext callContext, CodeAddress nativeAddress) {
+    private static MethodHandle getPrimitiveMethodHandle(Signature signature, CodeAddress nativeAddress) {
         MethodHandleGenerator[] generators = {
                 new PrimitiveX86MethodHandleGenerator(),
                 new PrimitiveNumericMethodHandleGenerator(),
@@ -51,8 +51,8 @@ public final class Native {
         };
 
         for (MethodHandleGenerator g : generators) {
-            if (g.isSupported(callContext.getResultType(), callContext.parameterTypeList(), callContext.getCallingConvention())) {
-                return g.createBoundHandle(callContext, nativeAddress);
+            if (g.isSupported(signature.getResultType(), signature.parameterTypeList(), signature.getCallingConvention())) {
+                return g.createBoundHandle(signature, nativeAddress);
             }
         }
 

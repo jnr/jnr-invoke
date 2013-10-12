@@ -45,7 +45,7 @@ import static org.objectweb.asm.Opcodes.*;
  */
 final class DefaultMethodHandleGenerator implements MethodHandleGenerator {
     @Override
-    public MethodHandle createBoundHandle(jnr.invoke.CallContext callContext, CodeAddress nativeAddress) {
+    public MethodHandle createBoundHandle(Signature signature, CodeAddress nativeAddress) {
         AsmClassLoader classLoader = new AsmClassLoader(Native.class.getClassLoader());
 
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
@@ -54,9 +54,9 @@ final class DefaultMethodHandleGenerator implements MethodHandleGenerator {
         AsmBuilder builder = new AsmBuilder(p(Native.class) + "$jnr$ffi$" + nextClassID.getAndIncrement(), cv, classLoader);
 
         cv.visit(V1_7, ACC_PUBLIC | ACC_FINAL, builder.getClassNamePath(), null, p(java.lang.Object.class), new String[0]);
-        ResultType resultType = callContext.getResultType().asPrimitiveType();
+        ResultType resultType = signature.getResultType().asPrimitiveType();
 
-        generate(builder, STUB_NAME, callContext.getNativeCallContext(), nativeAddress.address(), resultType, callContext.parameterTypeArray());
+        generate(builder, STUB_NAME, signature.getNativeCallContext(), nativeAddress.address(), resultType, signature.parameterTypeArray());
 
         // Stash a strong ref to the library, so it doesn't get garbage collected.
         builder.getObjectField(nativeAddress);
@@ -71,7 +71,7 @@ final class DefaultMethodHandleGenerator implements MethodHandleGenerator {
             Class implClass = classLoader.defineClass(builder.getClassNamePath().replace("/", "."), cw.toByteArray(),
                     DEBUG ? new OutputStreamWriter(System.err) : null);
 
-            return LOOKUP.findStatic(implClass, STUB_NAME, callContext.methodType());
+            return LOOKUP.findStatic(implClass, STUB_NAME, signature.methodType());
 
         } catch (Throwable ex) {
             throw new RuntimeException(ex);
