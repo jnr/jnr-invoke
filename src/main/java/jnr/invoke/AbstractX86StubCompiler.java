@@ -19,6 +19,7 @@
 package jnr.invoke;
 
 import com.kenai.jffi.*;
+import jnr.udis86.X86Disassembler;
 import jnr.x86asm.Assembler;
 
 import java.io.PrintStream;

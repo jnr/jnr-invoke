@@ -57,6 +57,13 @@
     </dependency>
 
     <dependency>
+      <groupId>com.github.jnr</groupId>
+      <artifactId>jnr-udis86</artifactId>
+      <version>0.1</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
       <version>4.0</version>
