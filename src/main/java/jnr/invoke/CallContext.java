@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static jnr.invoke.Util.asPrimitiveTypes;
+import static jnr.invoke.Util.javaTypeArray;
 
 /**
  * Native function call context
@@ -47,17 +48,35 @@ import static jnr.invoke.Util.asPrimitiveTypes;
  */
 public final class CallContext {
 
+    public static final int SAVE_ERRNO    = 0x1;
+    public static final int CDECL         = 0x2;
+    public static final int STDCALL       = 0x4;
+    public static final int FAULT_PROTECT = 0x8;
+    public static final int DEFAULT = (SAVE_ERRNO | CDECL);
+    private static final int VALID_FLAGS = (SAVE_ERRNO | CDECL | STDCALL | FAULT_PROTECT);
+
     /** The return type of this function */
-    final ResultType resultType;
+    private final ResultType resultType;
 
     /** The parameter types of this function */
-    final ParameterType[] parameterTypes;
+    private final ParameterType[] parameterTypes;
 
-    final CallingConvention callingConvention;
-
-    final boolean saveErrno;
+    private final int flags;
 
     private com.kenai.jffi.CallContext jffiContext;
+
+    /**
+     * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
+     * the signature requested, and should be used in preference to instantiating new instances.
+     *
+     * @param resultType The return type of the native function.
+     * @param parameterTypes The parameter types the function accepts.
+     * @param flags the flags for the call.
+     * @return An instance of CallContext
+     */
+    public static CallContext getCallContext(ResultType resultType, ParameterType[] parameterTypes, int flags) {
+        return new CallContext(resultType, parameterTypes, flags);
+    }
 
     /**
      * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
@@ -70,40 +89,25 @@ public final class CallContext {
      * @return An instance of CallContext
      */
     public static CallContext getCallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention, boolean saveErrno) {
-        return new CallContext(resultType, parameterTypes, convention, saveErrno);
+        return new CallContext(resultType, parameterTypes, flags(convention) | (saveErrno ? SAVE_ERRNO : 0));
     }
 
     public static CallContext getCallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention,
                                              boolean saveErrno, boolean faultProtect) {
-        return new CallContext(resultType, parameterTypes, convention, saveErrno, faultProtect);
+        return new CallContext(resultType, parameterTypes, flags(convention) | (saveErrno ? SAVE_ERRNO : 0) | (faultProtect ? FAULT_PROTECT : 0));
     }
 
     /**
-     * Creates a new instance of <tt>Function</tt> with default calling convention.
+     * Returns a {@link CallContext} instance.  This may return a previously cached instance that matches
+     * the signature requested, and should be used in preference to instantiating new instances.
      *
+     * @param flags Flags.
      * @param resultType The return type of the native function.
      * @param parameterTypes The parameter types the function accepts.
+     * @return An instance of CallContext
      */
-    private CallContext(ResultType resultType, ParameterType... parameterTypes) {
-        this(resultType, parameterTypes, CallingConvention.DEFAULT, true);
-    }
-
-    /**
-     * Creates a new instance of <tt>Function</tt>.
-     *
-     * <tt>Function</tt> instances created with this constructor will save the
-     * C errno contents after each call.
-     *
-     * @param resultType The return type of the native function.
-     * @param parameterTypes The parameter types the function accepts.
-     * @param convention The calling convention of the function.
-     */
-    private CallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention) {
-        this(resultType, parameterTypes, convention, true);
-    }
-
-    private CallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention, boolean saveErrno) {
-        this(resultType, parameterTypes, convention, saveErrno, false);
+    public static CallContext getCallContext(int flags, ResultType resultType, ParameterType... parameterTypes) {
+        return new CallContext(resultType, parameterTypes, flags);
     }
 
     /**
@@ -111,15 +115,11 @@ public final class CallContext {
      *
      * @param resultType The return type of the native function.
      * @param parameterTypes The parameter types the function accepts.
-     * @param convention The calling convention of the function.
-     * @param saveErrno Whether the errno should be saved or not
      */
-    CallContext(ResultType resultType, ParameterType[] parameterTypes, CallingConvention convention,
-                boolean saveErrno, boolean faultProtect) {
+    private CallContext(ResultType resultType, ParameterType[] parameterTypes, int flags) {
         this.resultType = resultType;
         this.parameterTypes = parameterTypes.clone();
-        this.callingConvention = convention;
-        this.saveErrno = false;
+        this.flags = flags & VALID_FLAGS;
     }
 
     /**
@@ -151,11 +151,15 @@ public final class CallContext {
     }
 
     public CallingConvention getCallingConvention() {
-        return callingConvention;
+        return callingConvention(flags);
     }
 
     com.kenai.jffi.CallContext getNativeCallContext() {
         return jffiContext != null ? jffiContext : createNativeCallContext();
+    }
+
+    boolean saveErrno() {
+        return (flags & SAVE_ERRNO) != 0;
     }
 
     private synchronized com.kenai.jffi.CallContext createNativeCallContext() {
@@ -169,16 +173,11 @@ public final class CallContext {
         }
 
         return jffiContext = com.kenai.jffi.CallContext.getCallContext(resultType.jffiType(),
-                nativeParamTypes, jffiConvention(callingConvention), saveErrno);
+                nativeParamTypes, jffiConvention(flags), saveErrno(), (flags & FAULT_PROTECT) != 0);
     }
 
     MethodType methodType() {
-        Class[] ptypes = new Class[parameterTypes.length];
-        for (int i = 0; i < ptypes.length; i++) {
-            ptypes[i] = parameterTypes[i].javaType();
-        }
-
-        return MethodType.methodType(resultType.javaType(), ptypes);
+        return MethodType.methodType(resultType.javaType(), javaTypeArray(parameterTypes));
     }
 
     ParameterType[] parameterTypeArray() {
@@ -190,11 +189,18 @@ public final class CallContext {
     }
 
     CallContext asPrimitiveContext() {
-        return CallContext.getCallContext(resultType.asPrimitiveType(), asPrimitiveTypes(parameterTypes),
-                callingConvention, saveErrno);
+        return CallContext.getCallContext(flags, resultType.asPrimitiveType(), asPrimitiveTypes(parameterTypes));
     }
 
-    public static com.kenai.jffi.CallingConvention jffiConvention(CallingConvention callingConvention) {
-        return callingConvention == CallingConvention.DEFAULT ? com.kenai.jffi.CallingConvention.DEFAULT : com.kenai.jffi.CallingConvention.STDCALL;
+    static com.kenai.jffi.CallingConvention jffiConvention(int flags) {
+        return (flags & STDCALL) != 0 ? com.kenai.jffi.CallingConvention.STDCALL : com.kenai.jffi.CallingConvention.DEFAULT;
+    }
+
+    static CallingConvention callingConvention(int flags) {
+        return (flags & STDCALL) != 0 ? CallingConvention.STDCALL : CallingConvention.DEFAULT;
+    }
+
+    private static int flags(CallingConvention callingConvention) {
+        return callingConvention == CallingConvention.STDCALL ? STDCALL : CDECL;
     }
 }

@@ -98,7 +98,7 @@ final class PrimitiveX86MethodHandleGenerator implements MethodHandleGenerator {
                 stubName, sig(nativeReturnType, nativeParameterTypes), null, null).visitEnd();
 
         compiler.compile(function, stubName, resultType, parameterTypes, nativeReturnType, nativeParameterTypes,
-                callContext.getCallingConvention(), callContext.saveErrno);
+                callContext.getCallingConvention(), callContext.saveErrno());
     }
 
     private static boolean isSupportedType(SignatureType type) {
